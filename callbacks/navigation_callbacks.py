@@ -14,74 +14,6 @@ from components.march.participant_detail import (
 def register_navigation_callbacks(app):
     """Register all navigation callbacks"""
 
-    @app.callback(
-        Output('main-content', 'children'),
-        [
-            Input({'type': 'view-march-btn', 'march_id': dash.dependencies.ALL}, 'n_clicks'),
-            Input({'type': 'view-participant-btn', 'user_id': dash.dependencies.ALL, 'march_id': dash.dependencies.ALL}, 'n_clicks'),
-            Input({'type': 'back-to-march-btn', 'march_id': dash.dependencies.ALL}, 'n_clicks'),
-        ],
-        [
-            State({'type': 'view-march-btn', 'march_id': dash.dependencies.ALL}, 'id'),
-            State({'type': 'view-participant-btn', 'user_id': dash.dependencies.ALL, 'march_id': dash.dependencies.ALL}, 'id'),
-            State({'type': 'back-to-march-btn', 'march_id': dash.dependencies.ALL}, 'id'),
-        ],
-        prevent_initial_call=True
-    )
-    def handle_navigation(march_clicks, participant_clicks, back_to_march_clicks, march_ids, participant_ids, back_to_march_ids):
-        """Handle navigation between march overview and participant detail views"""
-
-        if not callback_context.triggered:
-            raise PreventUpdate
-
-        trigger = callback_context.triggered[0]
-        trigger_id = trigger['prop_id']
-
-        # Handle march selection
-        if 'view-march-btn' in trigger_id and any(march_clicks or []):
-            # Find which march button was clicked
-            for i, clicks in enumerate(march_clicks or []):
-                if clicks:
-                    march_id = march_ids[i]['march_id']
-                    return create_march_overview(march_id)
-
-        # Handle participant detail view
-        if 'view-participant-btn' in trigger_id and any(participant_clicks or []):
-            # Find which participant button was clicked
-            for i, clicks in enumerate(participant_clicks or []):
-                if clicks:
-                    user_id = participant_ids[i]['user_id']
-                    march_id = participant_ids[i]['march_id']
-
-                    # Create participant detail view with back button
-                    detail_view = create_participant_detail_view(march_id, user_id)
-                    back_button = create_back_to_overview_button(march_id)
-
-                    return [back_button, detail_view]
-
-        # Handle back to march overview from participant detail
-        if 'back-to-march-btn' in trigger_id and any(back_to_march_clicks or []):
-            # Find which back button was clicked
-            for i, clicks in enumerate(back_to_march_clicks or []):
-                if clicks:
-                    march_id = back_to_march_ids[i]['march_id']
-                    return create_march_overview(march_id)
-
-        raise PreventUpdate
-
-
-    # Separate callback for back-to-all-marches button to avoid missing element errors
-    @app.callback(
-        Output('main-content', 'children', allow_duplicate=True),
-        [Input('back-to-all-marches-btn', 'n_clicks')],
-        prevent_initial_call=True
-    )
-    def handle_back_to_all_marches(n_clicks):
-        """Handle back to all marches navigation"""
-        if n_clicks:
-            return create_march_overview()
-        raise PreventUpdate
-
     # Store current navigation state for better back navigation
     @app.callback(
         Output('navigation-state', 'data'),
@@ -132,23 +64,53 @@ def register_navigation_callbacks(app):
 
 
     @app.callback(
-        Output('url', 'pathname'),
-        [Input('main-content', 'children')],
-        [State('navigation-state', 'data')]
+        Output('url', 'pathname', allow_duplicate=True),
+        [Input({'type': 'view-participant-btn', 'user_id': dash.dependencies.ALL, 'march_id': dash.dependencies.ALL}, 'n_clicks')],
+        prevent_initial_call=True
     )
-    def update_url(content, nav_state):
-        """Update URL based on current view for better navigation"""
-
-        if nav_state is None:
+    def navigate_to_participant_detail(n_clicks_list):
+        """Navigate to participant detail view"""
+        if not any(n_clicks_list or []):
             return no_update
 
-        current_view = nav_state.get('current_view', 'home')
-        current_march = nav_state.get('current_march')
-        current_participant = nav_state.get('current_participant')
+        ctx = callback_context
+        if ctx.triggered:
+            button_id = ctx.triggered[0]['prop_id'].split('.')[0]
+            try:
+                # Parse the button ID to extract march_id and user_id
+                import json
+                button_data = json.loads(button_id.replace("'", '"'))
+                march_id = button_data['march_id']
+                user_id = button_data['user_id']
+                return f'/march/{march_id}/participant/{user_id}'
+            except (json.JSONDecodeError, KeyError) as e:
+                print(f"Error parsing button ID: {e}")
+                return no_update
 
-        if current_view == 'march_overview' and current_march:
-            return f'/march/{current_march}'
-        elif current_view == 'participant_detail' and current_march and current_participant:
-            return f'/march/{current_march}/participant/{current_participant}'
+        return no_update
 
-        return '/'
+
+    @app.callback(
+        Output('url', 'pathname', allow_duplicate=True),
+        [Input({'type': 'back-to-march-btn', 'march_id': dash.dependencies.ALL}, 'n_clicks')],
+        prevent_initial_call=True
+    )
+    def navigate_back_to_march_overview(n_clicks_list):
+        """Navigate back to march overview from participant detail"""
+        if not any(n_clicks_list or []):
+            return no_update
+
+        ctx = callback_context
+        if ctx.triggered:
+            button_id = ctx.triggered[0]['prop_id'].split('.')[0]
+            try:
+                # Parse the button ID to extract march_id
+                import json
+                button_data = json.loads(button_id.replace("'", '"'))
+                march_id = button_data['march_id']
+                return f'/march/{march_id}'
+            except (json.JSONDecodeError, KeyError) as e:
+                print(f"Error parsing button ID: {e}")
+                return no_update
+
+        return no_update

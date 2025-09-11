@@ -4,27 +4,40 @@ FitonDuty March Dashboard - Main Application
 Post-event analysis dashboard for long march physiological monitoring
 """
 
-import os
-import dash
-from dash import html, dcc, Input, Output, callback
-import dash_bootstrap_components as dbc
-from flask_login import LoginManager, UserMixin, current_user
-from flask import Flask
-from datetime import datetime
 import logging
+import os
+from datetime import datetime
 
-# Set up logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+import dash
+import dash_bootstrap_components as dbc
+from dash import Input, Output, callback, dcc, html
+from flask import Flask
+from flask_login import LoginManager, UserMixin, current_user
+
+# Import components
+# Import callbacks
+from callbacks.navigation_callbacks import register_navigation_callbacks
+from components.auth import create_login_form, create_user_info_dropdown
+
+# Show participant detail view
+from components.march.participant_detail import (
+    create_back_to_overview_button,
+    create_participant_detail_view,
+)
+from components.march.role_based_overview import create_role_based_march_overview
 
 # Import configuration
 from config.settings import config
 
-# Import database utilities
-from utils.database import init_database_manager
+# Check permissions
+from utils.auth import user_can_view_participant
 
-# Import auth utilities
-from utils.auth import get_user_by_id
+# Import database utilities
+from utils.database import get_user_by_id, init_database_manager
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Initialize Flask server
 server = Flask(__name__)
@@ -65,19 +78,19 @@ class User(UserMixin):
         self.role = user_data.get('role', 'participant')
         self.is_active_user = user_data.get('is_active', True)
         self.last_login = user_data.get('last_login')
-    
+
     @property
     def is_admin(self):
         return self.role == 'admin'
-    
+
     @property
     def is_supervisor(self):
         return self.role == 'supervisor'
-    
+
     @property
     def is_participant(self):
         return self.role == 'participant'
-    
+
     @property
     def display_name(self):
         return self.username
@@ -93,14 +106,6 @@ def load_user(user_id):
     except Exception as e:
         logger.error(f"Error loading user {user_id}: {e}")
     return None
-
-
-# Import components
-from components.auth import create_login_form, create_user_info_dropdown, create_loading_spinner
-from components.march.role_based_overview import create_role_based_march_overview
-
-# Import callbacks
-from callbacks.navigation_callbacks import register_navigation_callbacks
 
 # Register navigation callbacks
 register_navigation_callbacks(app)
@@ -120,47 +125,69 @@ app.layout = html.Div([
 )
 def display_page(pathname):
     """Main routing logic with authentication"""
-    
+
     if pathname == "/login" or not current_user.is_authenticated:
         return create_login_form()
-    
+
     # Authenticated routes
     if pathname == "/" or pathname is None:
         return create_authenticated_layout()
     elif pathname.startswith("/march/"):
         try:
-            march_id = int(pathname.split("/")[-1])
-            return create_authenticated_layout(march_id)
+            path_parts = pathname.split("/")
+            # Handle /march/<id>/participant/<user_id>
+            if len(path_parts) >= 5 and path_parts[3] == "participant":
+                march_id = int(path_parts[2])
+                user_id = int(path_parts[4])
+                return create_authenticated_layout(march_id, participant_id=user_id)
+            # Handle /march/<id>
+            else:
+                march_id = int(path_parts[2])
+                return create_authenticated_layout(march_id)
         except (ValueError, IndexError):
             return create_authenticated_layout()
     else:
         return create_authenticated_layout()
 
 
-def create_authenticated_layout(march_id=None):
+def create_authenticated_layout(march_id=None, participant_id=None):
     """Create main layout for authenticated users"""
-    
+
     if not current_user.is_authenticated:
         return create_login_form()
-    
-    # Navigation bar with user info
-    navbar = dbc.NavbarSimple(
-        children=[
-            create_user_info_dropdown(current_user)
-        ],
-        brand="FitonDuty March Dashboard",
-        brand_href="/",
-        color="primary",
-        dark=True,
-        className="mb-4"
-    )
-    
-    # Main content based on route - use main-content id for navigation callbacks
-    main_content = html.Div(
-        create_role_based_march_overview(march_id),
-        id="main-content"
-    )
-    
+
+    # Custom navigation bar with better alignment
+    navbar = html.Nav([
+        html.Div([
+            html.A(
+                "FitonDuty March Dashboard",
+                href="/",
+                className="navbar-brand"
+            ),
+            html.Div([
+                create_user_info_dropdown(current_user)
+            ], className="navbar-nav")
+        ], className="navbar-content")
+    ], className="navbar navbar-expand navbar-dark")
+
+    # Main content based on route
+    if participant_id and march_id:
+        if not user_can_view_participant(current_user.id, participant_id, current_user.role):
+            from components.auth import create_access_denied
+            main_content_body = create_access_denied("You don't have permission to view this participant's details.")
+        else:
+            back_button = create_back_to_overview_button(march_id)
+            detail_view = create_participant_detail_view(march_id, participant_id)
+            main_content_body = html.Div([back_button, detail_view])
+
+        main_content = html.Div(main_content_body, id="main-content")
+    else:
+        # Show regular march overview - use main-content id for navigation callbacks
+        main_content = html.Div(
+            create_role_based_march_overview(march_id),
+            id="main-content"
+        )
+
     # Footer
     footer = dbc.Row([
         dbc.Col([
@@ -171,15 +198,17 @@ def create_authenticated_layout(march_id=None):
             ], className="text-center text-muted small")
         ])
     ])
-    
-    return dbc.Container([
+
+    return html.Div([
         navbar,
-        main_content,
-        footer
-    ], fluid=True)
+        dbc.Container([
+            main_content,
+            footer
+        ], className="mt-4")
+    ])
 
 
-# Navigation callbacks  
+# Navigation callbacks
 @callback(
     Output('url', 'pathname', allow_duplicate=True),
     [Input({'type': 'view-march-btn', 'march_id': dash.dependencies.ALL}, 'n_clicks')],
@@ -189,14 +218,14 @@ def navigate_to_march(n_clicks_list):
     """Navigate to specific march view"""
     if not any(n_clicks_list):
         return dash.no_update
-    
+
     ctx = dash.callback_context
     if ctx.triggered:
         button_id = ctx.triggered[0]['prop_id'].split('.')[0]
         march_data = eval(button_id)  # Safe here as we control the button IDs
         march_id = march_data['march_id']
         return f"/march/{march_id}"
-    
+
     return dash.no_update
 
 

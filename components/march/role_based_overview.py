@@ -85,9 +85,9 @@ def create_accessible_march_selector():
                         _get_status_badge(march, current_user.role)
                     ], className="card-title"),
                     html.P([
-                        html.Strong("📅 Date: "), f"{march['date']}", html.Br(),
-                        html.Strong("📏 Distance: "), f"{march['distance_km']} km" if pd.notna(march['distance_km']) else "TBD", html.Br(),
-                        html.Strong("👥 Participants: "), f"{march['completed_count']}/{march['participant_count']} completed"
+                        html.I(className="fas fa-calendar me-2"), html.Strong("Date: "), f"{march['date']}", html.Br(),
+                        html.I(className="fas fa-route me-2"), html.Strong("Distance: "), f"{march['distance_km']} km" if pd.notna(march['distance_km']) else "TBD", html.Br(),
+                        html.I(className="fas fa-users me-2"), html.Strong("Participants: "), f"{march['completed_count']}/{march['participant_count']} completed"
                     ], className="card-text"),
                     dbc.Button(
                         _get_view_button_text(march, current_user.role),
@@ -101,9 +101,17 @@ def create_accessible_march_selector():
 
         title_text = _get_selector_title(current_user.role)
 
+        role_icon = {
+            'admin': 'fas fa-cogs',
+            'supervisor': 'fas fa-user-shield',
+            'participant': 'fas fa-running'
+        }.get(current_user.role, 'fas fa-list')
         return html.Div([
-            html.H4(title_text),
-            html.P(_get_selector_description(current_user.role)),
+            html.H4([
+                html.I(className=f"{role_icon} me-2"),
+                title_text
+            ], className="section-title"),
+            html.P(_get_selector_description(current_user.role), className="text-muted mb-4"),
             html.Div(march_cards)
         ])
 
@@ -132,11 +140,17 @@ def create_admin_march_view(march_id: int, march_info):
         march_header,
         dbc.Row([
             dbc.Col([
-                html.H5("🏆 Leaderboard"),
+                html.H5([
+                    html.I(className="fas fa-trophy me-2 text-warning"),
+                    "Leaderboard"
+                ], className="section-title"),
                 leaderboard_component
             ], md=6),
             dbc.Col([
-                html.H5("👥 All Participants"),
+                html.H5([
+                    html.I(className="fas fa-users me-2 text-info"),
+                    "All Participants"
+                ], className="section-title"),
                 participants_component
             ], md=6)
         ])
@@ -164,11 +178,17 @@ def create_supervisor_march_view(march_id: int, march_info):
         march_header,
         dbc.Row([
             dbc.Col([
-                html.H5("🏆 Leaderboard"),
+                html.H5([
+                    html.I(className="fas fa-trophy me-2 text-warning"),
+                    "Leaderboard"
+                ], className="section-title"),
                 leaderboard_component
             ], md=6),
             dbc.Col([
-                html.H5("👥 Participants in Your Groups"),
+                html.H5([
+                    html.I(className="fas fa-users me-2 text-info"),
+                    "Participants in Your Groups"
+                ], className="section-title"),
                 participants_component
             ], md=6)
         ])
@@ -207,11 +227,17 @@ def create_participant_march_view(march_id: int, march_info):
         march_header,
         dbc.Row([
             dbc.Col([
-                html.H5("📊 Your Performance"),
+                html.H5([
+                    html.I(className="fas fa-chart-bar me-2 text-success"),
+                    "Your Performance"
+                ], className="section-title"),
                 personal_card
             ], md=6),
             dbc.Col([
-                html.H5("🏆 Leaderboard"),
+                html.H5([
+                    html.I(className="fas fa-trophy me-2 text-warning"),
+                    "Leaderboard"
+                ], className="section-title"),
                 leaderboard_component
             ], md=6)
         ], className="mb-4"),
@@ -265,9 +291,9 @@ def _get_view_button_text(march, user_role):
 def _get_selector_title(user_role):
     """Get appropriate title for march selector"""
     titles = {
-        'admin': '🛠️ All March Events',
-        'supervisor': '👮 March Events - Supervisor View',
-        'participant': '🏃 My March Participation'
+        'admin': 'All March Events',
+        'supervisor': 'March Events - Supervisor View',
+        'participant': 'My March Participation'
     }
     return titles.get(user_role, 'March Events')
 

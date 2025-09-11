@@ -28,29 +28,29 @@ def create_hr_speed_timeline(timeseries_data: pd.DataFrame, participant_name: st
         subplot_titles=[f"{participant_name} - Heart Rate & Speed During March"]
     )
 
-    # Heart Rate trace
+    # Heart Rate trace - using primary color
     fig.add_trace(
         go.Scatter(
             x=timeseries_data['timestamp_minutes'],
             y=timeseries_data['heart_rate'],
             mode='lines+markers',
             name='Heart Rate',
-            line=dict(color='#e74c3c', width=2),
-            marker=dict(size=4),
+            line=dict(color='#2c3e50', width=3),
+            marker=dict(size=5, color='#2c3e50'),
             hovertemplate='<b>Time:</b> %{x} min<br><b>HR:</b> %{y} bpm<extra></extra>'
         ),
         secondary_y=False,
     )
 
-    # Speed trace
+    # Speed trace - using secondary color
     fig.add_trace(
         go.Scatter(
             x=timeseries_data['timestamp_minutes'],
             y=timeseries_data['estimated_speed_kmh'],
             mode='lines+markers',
             name='Speed',
-            line=dict(color='#3498db', width=2),
-            marker=dict(size=4),
+            line=dict(color='#3498db', width=3),
+            marker=dict(size=5, color='#3498db'),
             hovertemplate='<b>Time:</b> %{x} min<br><b>Speed:</b> %{y:.1f} km/h<extra></extra>'
         ),
         secondary_y=True,
@@ -79,7 +79,7 @@ def create_hr_speed_timeline(timeseries_data: pd.DataFrame, participant_name: st
         showgrid=False
     )
 
-    # Update layout
+    # Update layout with professional styling
     fig.update_layout(
         height=400,
         hovermode='x unified',
@@ -90,7 +90,10 @@ def create_hr_speed_timeline(timeseries_data: pd.DataFrame, participant_name: st
             xanchor="right",
             x=1
         ),
-        margin=dict(l=50, r=50, t=80, b=50)
+        margin=dict(l=50, r=50, t=80, b=50),
+        plot_bgcolor='rgba(0,0,0,0)',
+        paper_bgcolor='rgba(0,0,0,0)',
+        font=dict(family="system-ui, -apple-system, sans-serif", size=12, color="#212529")
     )
 
     return fig
@@ -110,7 +113,8 @@ def create_hr_zones_chart(hr_zones_data: dict[str, float]) -> go.Figure:
         return fig
 
     zone_labels = ['Very Light', 'Light', 'Moderate', 'Intense', 'Beast Mode']
-    zone_colors = ['#95a5a6', '#f39c12', '#e67e22', '#e74c3c', '#8e44ad']
+    # Professional color palette for HR zones
+    zone_colors = ['#95a5a6', '#f39c12', '#e67e22', '#e74c3c', '#2c3e50']
 
     values = [
         hr_zones_data.get('very_light_percent', 0),
@@ -151,7 +155,8 @@ def create_hr_zones_chart(hr_zones_data: dict[str, float]) -> go.Figure:
         title=dict(
             text="Heart Rate Zones Distribution",
             x=0.5,
-            xanchor='center'
+            xanchor='center',
+            font=dict(size=14, color="#2c3e50")
         ),
         height=300,
         margin=dict(l=20, r=20, t=60, b=20),
@@ -162,7 +167,10 @@ def create_hr_zones_chart(hr_zones_data: dict[str, float]) -> go.Figure:
             y=0.5,
             xanchor="left",
             x=1.05
-        )
+        ),
+        plot_bgcolor='rgba(0,0,0,0)',
+        paper_bgcolor='rgba(0,0,0,0)',
+        font=dict(family="system-ui, -apple-system, sans-serif", size=12, color="#212529")
     )
 
     return fig
@@ -189,7 +197,8 @@ def create_movement_speeds_chart(movement_data: dict[str, int]) -> go.Figure:
         movement_data.get('running_minutes', 0),
         movement_data.get('stationary_minutes', 0)
     ]
-    colors = ['#3498db', '#2ecc71', '#f39c12', '#e74c3c', '#95a5a6']
+    # Professional color palette for movement categories
+    colors = ['#3498db', '#27ae60', '#f39c12', '#2c3e50', '#95a5a6']
 
     # Filter out zero values
     filtered_data = [(cat, val, color) for cat, val, color in zip(categories, values, colors, strict=False) if val > 0]
@@ -220,12 +229,16 @@ def create_movement_speeds_chart(movement_data: dict[str, int]) -> go.Figure:
         title=dict(
             text="Time Spent in Movement Categories",
             x=0.5,
-            xanchor='center'
+            xanchor='center',
+            font=dict(size=14, color="#2c3e50")
         ),
         xaxis_title="Minutes",
         height=250,
         margin=dict(l=100, r=50, t=60, b=50),
-        showlegend=False
+        showlegend=False,
+        plot_bgcolor='rgba(0,0,0,0)',
+        paper_bgcolor='rgba(0,0,0,0)',
+        font=dict(family="system-ui, -apple-system, sans-serif", size=12, color="#212529")
     )
 
     fig.update_xaxes(showgrid=True, gridwidth=1, gridcolor='rgba(128,128,128,0.2)')
@@ -253,10 +266,10 @@ def create_cumulative_steps_chart(timeseries_data: pd.DataFrame) -> go.Figure:
             y=timeseries_data['cumulative_steps'],
             mode='lines+markers',
             name='Cumulative Steps',
-            line=dict(color='#2ecc71', width=3),
-            marker=dict(size=5),
+            line=dict(color='#27ae60', width=3),
+            marker=dict(size=5, color='#27ae60'),
             fill='tonexty',
-            fillcolor='rgba(46,204,113,0.1)',
+            fillcolor='rgba(39,174,96,0.1)',
             hovertemplate='<b>Time:</b> %{x} min<br><b>Steps:</b> %{y:,}<extra></extra>'
         )
     ])
@@ -265,13 +278,17 @@ def create_cumulative_steps_chart(timeseries_data: pd.DataFrame) -> go.Figure:
         title=dict(
             text="Cumulative Steps During March",
             x=0.5,
-            xanchor='center'
+            xanchor='center',
+            font=dict(size=14, color="#2c3e50")
         ),
         xaxis_title="Time (minutes)",
         yaxis_title="Cumulative Steps",
         height=300,
         margin=dict(l=50, r=50, t=60, b=50),
-        showlegend=False
+        showlegend=False,
+        plot_bgcolor='rgba(0,0,0,0)',
+        paper_bgcolor='rgba(0,0,0,0)',
+        font=dict(family="system-ui, -apple-system, sans-serif", size=12, color="#212529")
     )
 
     fig.update_xaxes(showgrid=True, gridwidth=1, gridcolor='rgba(128,128,128,0.2)')
@@ -301,32 +318,32 @@ def create_pace_consistency_chart(timeseries_data: pd.DataFrame) -> go.Figure:
 
     fig = go.Figure()
 
-    # Add actual speed
+    # Add actual speed - lighter color
     fig.add_trace(go.Scatter(
         x=timeseries_data['timestamp_minutes'],
         y=speeds,
         mode='lines',
         name='Actual Speed',
-        line=dict(color='#3498db', width=1, dash='dot'),
-        opacity=0.7,
+        line=dict(color='#95a5a6', width=2, dash='dot'),
+        opacity=0.8,
         hovertemplate='<b>Time:</b> %{x} min<br><b>Speed:</b> %{y:.1f} km/h<extra></extra>'
     ))
 
-    # Add rolling average
+    # Add rolling average - primary color
     fig.add_trace(go.Scatter(
         x=timeseries_data['timestamp_minutes'],
         y=rolling_avg,
         mode='lines',
         name='5-Point Average',
-        line=dict(color='#2ecc71', width=2),
+        line=dict(color='#2c3e50', width=3),
         hovertemplate='<b>Time:</b> %{x} min<br><b>Avg Speed:</b> %{y:.1f} km/h<extra></extra>'
     ))
 
-    # Add overall average line
+    # Add overall average line - accent color
     fig.add_hline(
         y=avg_speed,
         line_dash="dash",
-        line_color="#e74c3c",
+        line_color="#f39c12",
         annotation_text=f"March Average: {avg_speed:.1f} km/h",
         annotation_position="top right"
     )
@@ -335,7 +352,8 @@ def create_pace_consistency_chart(timeseries_data: pd.DataFrame) -> go.Figure:
         title=dict(
             text="Pace Consistency Analysis",
             x=0.5,
-            xanchor='center'
+            xanchor='center',
+            font=dict(size=14, color="#2c3e50")
         ),
         xaxis_title="Time (minutes)",
         yaxis_title="Speed (km/h)",
@@ -347,7 +365,10 @@ def create_pace_consistency_chart(timeseries_data: pd.DataFrame) -> go.Figure:
             y=1.02,
             xanchor="right",
             x=1
-        )
+        ),
+        plot_bgcolor='rgba(0,0,0,0)',
+        paper_bgcolor='rgba(0,0,0,0)',
+        font=dict(family="system-ui, -apple-system, sans-serif", size=12, color="#212529")
     )
 
     fig.update_xaxes(showgrid=True, gridwidth=1, gridcolor='rgba(128,128,128,0.2)')

@@ -40,44 +40,56 @@ def create_performance_summary_cards(summary_data: dict[str, Any]) -> dbc.Row:
         dbc.Col([
             dbc.Card([
                 dbc.CardBody([
-                    html.H6("March Duration", className="card-title text-muted"),
-                    html.H4(card_data['duration'], className="card-text text-primary"),
+                    html.H6([
+                        html.I(className="fas fa-clock me-2"),
+                        "March Duration"
+                    ], className="metric-label"),
+                    html.H4(card_data['duration'], className="metric-value"),
                     status_badge
                 ])
-            ], className="h-100")
+            ], className="h-100 metric-card")
         ], width=6, lg=3),
 
         # Average Pace
         dbc.Col([
             dbc.Card([
                 dbc.CardBody([
-                    html.H6("Average Pace", className="card-title text-muted"),
-                    html.H4(card_data['avg_pace'], className="card-text text-info"),
+                    html.H6([
+                        html.I(className="fas fa-tachometer-alt me-2"),
+                        "Average Pace"
+                    ], className="metric-label"),
+                    html.H4(card_data['avg_pace'], className="metric-value"),
                     html.Small(f"Distance: {card_data['estimated_distance']}", className="text-muted")
                 ])
-            ], className="h-100")
+            ], className="h-100 metric-card")
         ], width=6, lg=3),
 
         # Steps & Activity
         dbc.Col([
             dbc.Card([
                 dbc.CardBody([
-                    html.H6("Total Steps", className="card-title text-muted"),
-                    html.H4(card_data['total_steps'], className="card-text text-success"),
+                    html.H6([
+                        html.I(className="fas fa-walking me-2"),
+                        "Total Steps"
+                    ], className="metric-label"),
+                    html.H4(card_data['total_steps'], className="metric-value"),
                     html.Small(f"HR: {card_data['avg_hr']} avg / {card_data['max_hr']} max", className="text-muted")
                 ])
-            ], className="h-100")
+            ], className="h-100 metric-card")
         ], width=6, lg=3),
 
         # Effort Score
         dbc.Col([
             dbc.Card([
                 dbc.CardBody([
-                    html.H6("Effort Score", className="card-title text-muted"),
-                    html.H4(card_data['effort_score'], className="card-text text-warning"),
+                    html.H6([
+                        html.I(className="fas fa-bolt me-2"),
+                        "Effort Score"
+                    ], className="metric-label"),
+                    html.H4(card_data['effort_score'], className="metric-value"),
                     html.Small("Relative performance", className="text-muted")
                 ])
-            ], className="h-100")
+            ], className="h-100 metric-card")
         ], width=6, lg=3),
     ]
 
@@ -122,9 +134,10 @@ def create_participant_detail_view(march_id: int, user_id: int) -> html.Div:
             dbc.Row([
                 dbc.Col([
                     html.H2([
+                        html.I(className="fas fa-analytics me-2"),
                         "March Performance Analysis",
                         html.Small(f" - {participant_name}", className="text-muted ms-2")
-                    ]),
+                    ], className="text-gradient"),
                     html.Hr()
                 ])
             ], className="mb-3"),
@@ -137,7 +150,10 @@ def create_participant_detail_view(march_id: int, user_id: int) -> html.Div:
                 dbc.Col([
                     dbc.Card([
                         dbc.CardHeader([
-                            html.H5("Heart Rate & Speed Timeline", className="mb-0")
+                            html.H5([
+                                html.I(className="fas fa-chart-line me-2"),
+                                "Heart Rate & Speed Timeline"
+                            ], className="mb-0 text-professional")
                         ]),
                         dbc.CardBody([
                             dcc.Graph(
@@ -145,7 +161,7 @@ def create_participant_detail_view(march_id: int, user_id: int) -> html.Div:
                                 config={'displayModeBar': False}
                             )
                         ])
-                    ])
+                    ], className="chart-container")
                 ], width=12)
             ], className="mb-4"),
 
@@ -155,7 +171,10 @@ def create_participant_detail_view(march_id: int, user_id: int) -> html.Div:
                 dbc.Col([
                     dbc.Card([
                         dbc.CardHeader([
-                            html.H6("Heart Rate Zones", className="mb-0")
+                            html.H6([
+                                html.I(className="fas fa-heartbeat me-2"),
+                                "Heart Rate Zones"
+                            ], className="mb-0 text-professional")
                         ]),
                         dbc.CardBody([
                             dcc.Graph(
@@ -163,14 +182,17 @@ def create_participant_detail_view(march_id: int, user_id: int) -> html.Div:
                                 config={'displayModeBar': False}
                             )
                         ])
-                    ])
+                    ], className="chart-container")
                 ], width=12, lg=6),
 
                 # Movement Speeds
                 dbc.Col([
                     dbc.Card([
                         dbc.CardHeader([
-                            html.H6("Movement Categories", className="mb-0")
+                            html.H6([
+                                html.I(className="fas fa-running me-2"),
+                                "Movement Categories"
+                            ], className="mb-0 text-professional")
                         ]),
                         dbc.CardBody([
                             dcc.Graph(
@@ -178,7 +200,7 @@ def create_participant_detail_view(march_id: int, user_id: int) -> html.Div:
                                 config={'displayModeBar': False}
                             )
                         ])
-                    ])
+                    ], className="chart-container")
                 ], width=12, lg=6)
             ], className="mb-4"),
 
@@ -188,7 +210,10 @@ def create_participant_detail_view(march_id: int, user_id: int) -> html.Div:
                 dbc.Col([
                     dbc.Card([
                         dbc.CardHeader([
-                            html.H6("Step Progress", className="mb-0")
+                            html.H6([
+                                html.I(className="fas fa-walking me-2"),
+                                "Step Progress"
+                            ], className="mb-0 text-professional")
                         ]),
                         dbc.CardBody([
                             dcc.Graph(
@@ -196,14 +221,17 @@ def create_participant_detail_view(march_id: int, user_id: int) -> html.Div:
                                 config={'displayModeBar': False}
                             )
                         ])
-                    ])
+                    ], className="chart-container")
                 ], width=12, lg=6),
 
                 # Pace Consistency
                 dbc.Col([
                     dbc.Card([
                         dbc.CardHeader([
-                            html.H6("Pace Analysis", className="mb-0")
+                            html.H6([
+                                html.I(className="fas fa-tachometer-alt me-2"),
+                                "Pace Analysis"
+                            ], className="mb-0 text-professional")
                         ]),
                         dbc.CardBody([
                             dcc.Graph(
@@ -211,7 +239,7 @@ def create_participant_detail_view(march_id: int, user_id: int) -> html.Div:
                                 config={'displayModeBar': False}
                             )
                         ])
-                    ])
+                    ], className="chart-container")
                 ], width=12, lg=6)
             ], className="mb-4")
 
@@ -286,7 +314,8 @@ def create_back_to_overview_button(march_id: int) -> dbc.Row:
                 ],
                 id={"type": "back-to-march-btn", "march_id": march_id},
                 color="outline-primary",
-                size="sm"
+                size="sm",
+                className="btn-outline-professional"
             )
         ], width="auto")
     ], className="mb-3")
@@ -304,6 +333,7 @@ def create_participant_comparison_button(march_id: int) -> dbc.Col:
             id="compare-participants-btn",
             color="info",
             size="sm",
-            outline=True
+            outline=True,
+            className="btn-outline-professional"
         )
     ], width="auto")

@@ -16,14 +16,17 @@ def create_login_form():
             dbc.Col([
                 dbc.Card([
                     dbc.CardHeader([
-                        html.H4("🔒 Login to FitonDuty March Dashboard", className="text-center mb-0")
-                    ]),
+                        html.H4([
+                            html.I(className="fas fa-shield-alt me-3"),
+                            "Login to the March Dashboard"
+                        ], className="text-center mb-0 text-white")
+                    ], className="bg-gradient-primary text-white py-3"),
                     dbc.CardBody([
                         html.Div(id="login-error-message"),
 
                         dbc.Form([
                             dbc.InputGroup([
-                                dbc.InputGroupText("👤"),
+                                dbc.InputGroupText(html.I(className="fas fa-user")),
                                 dbc.Input(
                                     id="login-username",
                                     placeholder="Username",
@@ -34,7 +37,7 @@ def create_login_form():
                             ], className="mb-3"),
 
                             dbc.InputGroup([
-                                dbc.InputGroupText("🔑"),
+                                dbc.InputGroupText(html.I(className="fas fa-key")),
                                 dbc.Input(
                                     id="login-password",
                                     placeholder="Password",
@@ -44,11 +47,11 @@ def create_login_form():
                             ], className="mb-3"),
 
                             dbc.Button(
-                                "Login",
+                                [html.I(className="fas fa-sign-in-alt me-2"), "Login"],
                                 id="login-submit-btn",
                                 color="primary",
                                 size="lg",
-                                className="w-100",
+                                className="w-100 btn-professional",
                                 type="submit"
                             ),
                         ], id="login-form"),
@@ -56,15 +59,18 @@ def create_login_form():
                         html.Hr(),
 
                         dbc.Alert([
-                            html.H6("Test Credentials", className="alert-heading"),
+                            html.H6([
+                                html.I(className="fas fa-info-circle me-2"),
+                                "Test Credentials"
+                            ], className="alert-heading"),
                             html.P([
                                 html.Strong("Admin: "), "admin / test123", html.Br(),
                                 html.Strong("Participants: "), "participant1-4 / test123"
                             ], className="mb-0")
                         ], color="info", className="small")
-                    ])
-                ], style={"maxWidth": "450px"})
-            ], width=12, lg=8, xl=6)
+                    ], className="py-3")
+                ], className="card-professional shadow-professional", style={"maxWidth": "450px", "maxHeight": "fit-content"})
+            ], width=12, className="d-flex justify-content-center")
         ], justify="center", className="min-vh-100 py-5")
     ])
 
@@ -74,20 +80,21 @@ def create_user_info_dropdown(user):
     if not user or not hasattr(user, 'username'):
         return html.Div()
 
-    # Role badge with emoji
+    # Role badge with professional icons
     role_config = {
-        'admin': {'emoji': '👑', 'label': 'Admin', 'color': 'danger'},
-        'supervisor': {'emoji': '👮', 'label': 'Supervisor', 'color': 'warning'},
-        'participant': {'emoji': '👤', 'label': 'Participant', 'color': 'info'}
+        'admin': {'icon': 'fas fa-crown', 'label': 'Admin', 'color': 'danger'},
+        'supervisor': {'icon': 'fas fa-user-shield', 'label': 'Supervisor', 'color': 'warning'},
+        'participant': {'icon': 'fas fa-user', 'label': 'Participant', 'color': 'info'}
     }
 
-    role_info = role_config.get(user.role, {'emoji': '👤', 'label': 'User', 'color': 'secondary'})
+    role_info = role_config.get(user.role, {'icon': 'fas fa-user', 'label': 'User', 'color': 'secondary'})
 
     return dbc.DropdownMenu(
         children=[
             dbc.DropdownMenuItem([
                 dbc.Badge([
-                    role_info['emoji'], " ", role_info['label']
+                    html.I(className=f"{role_info['icon']} me-1"),
+                    role_info['label']
                 ], color=role_info['color'], className="me-2"),
                 user.display_name
             ], header=True),
@@ -99,7 +106,10 @@ def create_user_info_dropdown(user):
         ],
         nav=True,
         in_navbar=True,
-        label=f"{role_info['emoji']} {user.display_name}",
+        label=[
+            html.I(className=f"{role_info['icon']} me-2"),
+            user.display_name
+        ],
         align_end=True,
         color="outline-light"
     )
@@ -111,7 +121,10 @@ def create_access_denied(message: str = None):
         dbc.Row([
             dbc.Col([
                 dbc.Alert([
-                    html.H4("🚫 Access Denied", className="alert-heading"),
+                    html.H4([
+                        html.I(className="fas fa-ban me-2"),
+                        "Access Denied"
+                    ], className="alert-heading"),
                     html.P(message or "You don't have permission to view this content."),
                     html.Hr(),
                     html.P([
@@ -120,7 +133,7 @@ def create_access_denied(message: str = None):
                     dbc.Button([
                         html.I(className="fas fa-sign-in-alt me-2"),
                         "Go to Login"
-                    ], href="/login", color="primary")
+                    ], href="/login", color="primary", className="btn-professional")
                 ], color="danger")
             ], md=8, lg=6)
         ], justify="center", className="mt-5")
@@ -134,8 +147,11 @@ def create_loading_spinner():
             dbc.Col([
                 html.Div([
                     dbc.Spinner(color="primary", size="lg"),
-                    html.P("Loading...", className="mt-3 text-muted")
-                ], className="text-center")
+                    html.P([
+                        html.I(className="fas fa-clock me-2"),
+                        "Loading..."
+                    ], className="mt-3 text-muted")
+                ], className="text-center loading-container")
             ])
         ], justify="center", className="mt-5")
     ])
@@ -161,11 +177,10 @@ def handle_login(n_clicks, n_submit, username, password):
     username = username.strip()
 
     if not username or not password:
-        error_alert = dbc.Alert(
-            "❌ Please enter both username and password",
-            color="danger",
-            className="mb-3"
-        )
+        error_alert = dbc.Alert([
+            html.I(className="fas fa-exclamation-triangle me-2"),
+            "Please enter both username and password"
+        ], color="danger", className="mb-3")
         return error_alert, dash.no_update
 
     user_data = authenticate_user(username, password)
@@ -178,7 +193,10 @@ def handle_login(n_clicks, n_submit, username, password):
         return "", "/"  # Redirect to main page
     else:
         error_alert = dbc.Alert([
-            html.Strong("❌ Login Failed"), html.Br(),
+            html.Strong([
+                html.I(className="fas fa-times-circle me-2"),
+                "Login Failed"
+            ]), html.Br(),
             "Invalid username or password. Please check your credentials and try again."
         ], color="danger", className="mb-3")
         return error_alert, dash.no_update

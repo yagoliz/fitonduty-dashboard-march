@@ -48,26 +48,32 @@ def create_march_selector():
         for _, march in march_events.iterrows():
             card = dbc.Card([
                 dbc.CardBody([
-                    html.H5(march['name'], className="card-title"),
+                    html.H5(march['name'], className="card-title text-professional"),
                     html.P([
-                        html.Strong("Date: "), f"{march['date']}", html.Br(),
-                        html.Strong("Distance: "), f"{march['distance_km']} km" if pd.notna(march['distance_km']) else "TBD", html.Br(),
-                        html.Strong("Duration: "), f"{march['duration_hours']} hours" if pd.notna(march['duration_hours']) else "TBD", html.Br(),
-                        html.Strong("Participants: "), f"{march['completed_count']}/{march['participant_count']} completed"
+                        html.I(className="fas fa-calendar me-2"), html.Strong("Date: "), f"{march['date']}", html.Br(),
+                        html.I(className="fas fa-route me-2"), html.Strong("Distance: "), f"{march['distance_km']} km" if pd.notna(march['distance_km']) else "TBD", html.Br(),
+                        html.I(className="fas fa-clock me-2"), html.Strong("Duration: "), f"{march['duration_hours']} hours" if pd.notna(march['duration_hours']) else "TBD", html.Br(),
+                        html.I(className="fas fa-users me-2"), html.Strong("Participants: "), f"{march['completed_count']}/{march['participant_count']} completed"
                     ], className="card-text"),
-                    dbc.Button(
-                        "View Results",
+                    dbc.Button([
+                        html.I(className="fas fa-chart-line me-2"),
+                        "View Results"
+                    ],
                         color="primary",
                         size="sm",
+                        className="btn-professional",
                         id={"type": "view-march-btn", "march_id": march['id']}
                     )
                 ])
-            ], className="mb-3")
+            ], className="mb-3 performance-card")
             march_cards.append(card)
 
         return html.Div([
-            html.H4("Available March Results"),
-            html.P("Select a march to view detailed results and participant performance."),
+            html.H4([
+                html.I(className="fas fa-list-alt me-2"),
+                "Available March Results"
+            ], className="section-title"),
+            html.P("Select a march to view detailed results and participant performance.", className="text-muted mb-4"),
             html.Div(march_cards)
         ])
 
@@ -96,26 +102,27 @@ def create_march_detail_view(march_info, participants_df, leaderboard_df):
     # March header
     march_header = dbc.Card([
         dbc.CardBody([
-            html.H3(march_info['name'], className="card-title"),
+            html.H3(march_info['name'], className="card-title text-gradient mb-3"),
             dbc.Row([
                 dbc.Col([
                     html.P([
-                        html.Strong("📅 Date: "), str(march_info['date']), html.Br(),
-                        html.Strong("📏 Distance: "), f"{march_info['distance_km']} km" if pd.notna(march_info['distance_km']) else "TBD", html.Br(),
-                        html.Strong("⏱️ Duration: "), f"{march_info['duration_hours']} hours" if pd.notna(march_info['duration_hours']) else "TBD"
+                        html.I(className="fas fa-calendar me-2"), html.Strong("Date: "), str(march_info['date']), html.Br(),
+                        html.I(className="fas fa-route me-2"), html.Strong("Distance: "), f"{march_info['distance_km']} km" if pd.notna(march_info['distance_km']) else "TBD", html.Br(),
+                        html.I(className="fas fa-clock me-2"), html.Strong("Duration: "), f"{march_info['duration_hours']} hours" if pd.notna(march_info['duration_hours']) else "TBD"
                     ])
                 ], md=6),
                 dbc.Col([
                     html.P([
-                        html.Strong("👥 Group: "), march_info['group_name'], html.Br(),
-                        html.Strong("✅ Completed: "), f"{march_info['completed_count']}/{march_info['participant_count']}", html.Br(),
-                        html.Strong("📊 Status: "), march_info['status'].title()
+                        html.I(className="fas fa-users me-2"), html.Strong("Group: "), march_info['group_name'], html.Br(),
+                        html.I(className="fas fa-check-circle me-2"), html.Strong("Completed: "), f"{march_info['completed_count']}/{march_info['participant_count']}", html.Br(),
+                        html.I(className="fas fa-info-circle me-2"), html.Strong("Status: "), march_info['status'].title()
                     ])
                 ], md=6)
             ]),
-            html.P(march_info['route_description'], className="text-muted")
+            html.Hr(),
+            html.P(march_info['route_description'], className="text-muted fst-italic")
         ])
-    ], className="mb-4")
+    ], className="mb-4 card-professional")
 
     # Leaderboard
     leaderboard_component = create_leaderboard_table(leaderboard_df)
@@ -128,11 +135,17 @@ def create_march_detail_view(march_info, participants_df, leaderboard_df):
         march_header,
         dbc.Row([
             dbc.Col([
-                html.H5("🏆 Leaderboard"),
+                html.H5([
+                html.I(className="fas fa-trophy me-2 text-warning"),
+                "Leaderboard"
+            ], className="section-title"),
                 leaderboard_component
             ], md=6),
             dbc.Col([
-                html.H5("👥 All Participants"),
+                html.H5([
+                html.I(className="fas fa-users me-2 text-info"),
+                "All Participants"
+            ], className="section-title"),
                 participants_component
             ], md=6)
         ])
@@ -147,16 +160,16 @@ def create_leaderboard_table(leaderboard_df):
 
     table_rows = []
     for _, row in leaderboard_df.iterrows():
-        # Medal emoji for top 3
+        # Medal styling for top 3
         rank_display = row['rank']
         if rank_display == 1:
-            rank_display = "🥇 1st"
+            rank_display = dbc.Badge("1st", color="warning", className="rank-badge rank-1")
         elif rank_display == 2:
-            rank_display = "🥈 2nd"
+            rank_display = dbc.Badge("2nd", color="secondary", className="rank-badge rank-2")
         elif rank_display == 3:
-            rank_display = "🥉 3rd"
+            rank_display = dbc.Badge("3rd", color="warning", className="rank-badge rank-3")
         else:
-            rank_display = f"{rank_display}th"
+            rank_display = dbc.Badge(f"{rank_display}th", color="light", className="rank-badge")
 
         table_row = html.Tr([
             html.Td(rank_display),
@@ -178,7 +191,7 @@ def create_leaderboard_table(leaderboard_df):
             ])
         ]),
         html.Tbody(table_rows)
-    ], striped=True, hover=True, size="sm")
+    ], striped=True, hover=True, size="sm", className="table-professional")
 
     return table
 
@@ -192,10 +205,12 @@ def create_participants_table(participants_df):
     table_rows = []
     for _, row in participants_df.iterrows():
         # Status indicator
-        status_badge = dbc.Badge(
-            "✅ Completed" if row['completed'] else "❌ Did not finish",
+        status_badge = dbc.Badge([
+            html.I(className="fas fa-check me-1" if row['completed'] else "fas fa-times me-1"),
+            "Completed" if row['completed'] else "Did not finish"
+        ],
             color="success" if row['completed'] else "danger",
-            className="me-2"
+            className="me-2 status-completed" if row['completed'] else "me-2 status-failed"
         )
 
         table_row = html.Tr([
@@ -203,10 +218,13 @@ def create_participants_table(participants_df):
             html.Td(f"{row['avg_hr']} bpm" if pd.notna(row['avg_hr']) else "-"),
             html.Td(f"{row['total_steps']:,}" if pd.notna(row['total_steps']) else "-"),
             html.Td(
-                dbc.Button(
-                    "View Details",
+                dbc.Button([
+                    html.I(className="fas fa-eye me-1"),
+                    "View Details"
+                ],
                     size="sm",
                     color="outline-primary",
+                    className="btn-outline-professional",
                     id={"type": "view-participant-btn", "user_id": row['user_id'], "march_id": row['march_id']}
                 ) if row['completed'] else "-"
             )
@@ -223,7 +241,7 @@ def create_participants_table(participants_df):
             ])
         ]),
         html.Tbody(table_rows)
-    ], striped=True, hover=True, size="sm")
+    ], striped=True, hover=True, size="sm", className="table-professional")
 
     return table
 
@@ -231,7 +249,10 @@ def create_participants_table(participants_df):
 def create_error_message(message: str):
     """Create error message component"""
     return dbc.Alert([
-        html.H5("⚠️ Error", className="alert-heading"),
+        html.H5([
+            html.I(className="fas fa-exclamation-triangle me-2"),
+            "Error"
+        ], className="alert-heading"),
         html.P(message),
         html.P("Please check the database connection and ensure the data has been seeded.", className="mb-0")
     ], color="danger")
