@@ -1,0 +1,66 @@
+---
+- name: Cleanup FitonDuty March Dashboard
+  hosts: dashboard_servers
+  gather_facts: yes
+  become: yes
+  vars_files:
+    - "../vars/{{ environment_name }}/vault.yml"
+  vars:
+    # Database configuration
+    server_db_name: "{{ environment_name | default('testing') }}"
+    march_working_dir: "/opt/fitonduty/fitonduty-dashboard-march"
+    march_venv_dir: "/opt/fitonduty/fitonduty-dashboard-march/venv"
+
+  pre_tasks:
+    - name: Confirm cleanup operation
+      pause:
+        prompt: |
+          ⚠️  WARNING: This will completely remove:
+          
+          - Working directory: {{ march_working_dir }}
+          - Python virtual environment
+          - Podman service file
+          - Podman containers
+          
+          This action is IRREVERSIBLE!
+          
+          Press ENTER to continue or Ctrl+C to abort
+      when: not skip_confirmation | default(false)
+
+  tasks:
+    - name: Stop any running march dashboard services
+      systemd:
+        name: "{{ item }}"
+        state: stopped
+        enabled: no
+      loop:
+        - fitonduty-dashboard-march
+      ignore_errors: yes
+
+    - name: Remove podman service file
+      file:
+        path: "/etc/containers/systemd/fitonduty-dashboard-march.container"
+        state: absent
+
+    - name: Remove podman image
+      command: podman rmi fitonduty_dashboard_march
+      ignore_errors: yes
+
+    - name: Remove march working directory
+      file:
+        path: "{{ march_working_dir }}"
+        state: absent
+
+  post_tasks:
+    - name: Verify directory removal
+      stat:
+        path: "{{ march_working_dir }}"
+      register: dir_check
+
+    - name: Display directory removal results
+      debug:
+        msg: |
+          🧹 March Dashboard Cleanup Complete!
+
+          Working Directory: {% if dir_check.stat.exists %} ❌ STILL EXISTS {% else %}✅ REMOVED {% endif %}
+          Please ensure to run the database cleanup playbook to remove the database and user if not already done.

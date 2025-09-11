@@ -1,0 +1,12 @@
+[Unit]
+Description=The FitonDuty Dashboard March Container
+After=local-fs.target
+
+[Container]
+Image=localhost/fitonduty_dashboard_march
+EnvironmentFile=/opt/fitonduty/fitonduty-dashboard-march/.env
+PublishPort=8040:8050
+
+[Install]
+# Start by default on boot
+WantedBy=multi-user.target default.target
