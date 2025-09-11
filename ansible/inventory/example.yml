@@ -7,17 +7,29 @@ all:
       hosts:
         # Replace with your actual database server
         database:
-          server_name: example
           ansible_user: ubuntu
-          ansible_host: localhost
-          
-          # Database configuration (optional - defaults provided)
-          db_name: fitonduty_march
-          db_user: fitonduty_march
-          db_port: 5432
-          pg_admin_user: postgres
+          ansible_host: "{{ db_host | default('localhost') }}"
+    
+    dashboard_servers:
+      hosts:
+        # Replace with your actual dashboard server
+        dashboard:
+          ansible_user: ansible
+          ansible_host: "{{ dash_host | default('localhost') }}"
 
   vars:
     # These should be set in vault file or passed as extra vars
     # vault_postgres_password: your-postgres-password
     # vault_march_db_password: your-march-db-password
+    
+    environment_name: example
+    
+    # Database configuration (optional - defaults provided)
+    db_name: fitonduty_march
+    db_user: fitonduty_march
+    db_port: 5432
+    pg_admin_user: postgres
+
+    # Change hosts here
+    db_host: localhost
+    dash_host: localhost
