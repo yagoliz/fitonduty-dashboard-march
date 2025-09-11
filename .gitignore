@@ -10,7 +10,7 @@ ansible/vaults/*
 .vault_pass
 
 # Env files
-*.env
+*.env*
 !.env.example
 
 # Python

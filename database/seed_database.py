@@ -26,7 +26,7 @@ def create_tables(engine):
 
     # Read and execute schema file
     schema_path = os.path.join(os.path.dirname(__file__), "schema.sql")
-    with open(schema_path, "r") as f:
+    with open(schema_path) as f:
         schema_sql = f.read()
 
     with engine.connect() as conn:
@@ -46,14 +46,14 @@ def create_tables(engine):
             statements = [stmt.strip() for stmt in schema_sql.split(";") if stmt.strip()]
             successful_statements = 0
             skipped_statements = 0
-            
+
             for statement in statements:
                 if statement and not statement.startswith("--"):
                     try:
                         conn.execute(text(statement))
                         successful_statements += 1
                     except Exception as stmt_error:
-                        if ("already exists" in str(stmt_error) or 
+                        if ("already exists" in str(stmt_error) or
                             "does not exist" in str(stmt_error) or
                             ("INDEX" in statement.upper() and "does not exist" in str(stmt_error))):
                             print(f"Skipping (expected): {stmt_error}")
@@ -62,10 +62,10 @@ def create_tables(engine):
                         else:
                             print(f"Failed statement: {statement[:100]}...")
                             raise stmt_error
-            
+
             conn.commit()
             print(f"✓ Executed {successful_statements} statements, skipped {skipped_statements}")
-    
+
     print("✓ Tables created successfully")
 
 
@@ -114,10 +114,10 @@ def seed_basic_data(conn):
     """),
         {"admin_id": admin_user_id}
     )
-    
+
     # Commit the group creation before proceeding
     conn.commit()
-    
+
     # Get the group ID dynamically
     result = conn.execute(
         text("SELECT id FROM groups WHERE group_name = 'Training Squad'")
@@ -129,7 +129,7 @@ def seed_basic_data(conn):
         text("SELECT id FROM users WHERE role = 'participant' ORDER BY id")
     )
     participant_ids = [row[0] for row in result.fetchall()]
-    
+
     # Assign participants to group using dynamic group_id
     for user_id in participant_ids:
         conn.execute(
@@ -289,13 +289,13 @@ def seed_march_data(conn):
         text("SELECT id FROM march_events WHERE name = 'Training March Alpha'")
     )
     march_id = result.fetchone()[0]
-    
+
     # Get participant user IDs dynamically
     result = conn.execute(
         text("SELECT id FROM users WHERE role = 'participant' ORDER BY id")
     )
     participant_ids = [row[0] for row in result.fetchall()]
-    
+
     # Create participant performance data with varying durations
     durations = [140, 155, 170, 145]  # good, average, slower, good performance
     participants = []
