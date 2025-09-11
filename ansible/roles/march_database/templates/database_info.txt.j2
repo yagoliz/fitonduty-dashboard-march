@@ -1,0 +1,24 @@
+FitonDuty March Dashboard Database Setup Complete
+======================================================
+
+Database Details:
+- Database Name: {{ march_db_name }}
+- Database User: {{ march_db_user }}
+- Database Host: {{ database_host }}:{{ database_port }}
+
+Connection String:
+DATABASE_URL='postgresql://{{ march_db_user }}:{{ vault_march_db_password }}@{{ database_host }}:{{ database_port }}/{{ march_db_name }}'
+
+Test Credentials:
+- Admin: admin / test123
+- Participants: participant1-4 / test123
+
+Next Steps:
+1. Set the DATABASE_URL environment variable on your development machine
+2. Start the dashboard: python app.py
+
+Files Location:
+- Working Directory: {{ march_working_dir }}
+- Virtual Environment: {{ march_venv_dir }}
+- Schema: {{ march_working_dir }}/scripts/schema.sql
+- Seed Script: {{ march_working_dir }}/scripts/seed_database.py

@@ -1,0 +1,19 @@
+---
+# Default variables for march database setup
+march_db_name: fitonduty_march
+march_db_user: fitonduty_march
+march_working_dir: /opt/fitonduty-march
+march_venv_dir: "{{ march_working_dir }}/venv"
+
+# Database connection settings
+postgres_user: postgres
+database_host: localhost
+database_port: 5432
+
+# Schema and seed files
+march_schema_file: schema.sql
+march_seed_script: seed_database.py
+
+# Seeding behavior
+# Options: 'sample' (schema + demo data), 'users' (schema + users only), 'none' (schema only)
+march_seed_mode: sample

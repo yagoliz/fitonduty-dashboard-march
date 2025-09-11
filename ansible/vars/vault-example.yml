@@ -1,0 +1,9 @@
+# Example vault file - encrypt this with ansible-vault
+# Copy this file to vault.yml and customize with your passwords
+# Then encrypt with: ansible-vault encrypt vault.yml
+
+# PostgreSQL admin password (for user 'postgres')
+vault_postgres_password: your-postgres-admin-password
+
+# March database user password
+vault_march_db_password: your-march-database-password

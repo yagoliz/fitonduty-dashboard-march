@@ -1,0 +1,23 @@
+# Example inventory file for march database setup
+# Copy this file and customize for your environment
+
+all:
+  children:
+    database_servers:
+      hosts:
+        # Replace with your actual database server
+        database:
+          server_name: example
+          ansible_user: ubuntu
+          ansible_host: localhost
+          
+          # Database configuration (optional - defaults provided)
+          db_name: fitonduty_march
+          db_user: fitonduty_march
+          db_port: 5432
+          pg_admin_user: postgres
+
+  vars:
+    # These should be set in vault file or passed as extra vars
+    # vault_postgres_password: your-postgres-password
+    # vault_march_db_password: your-march-db-password

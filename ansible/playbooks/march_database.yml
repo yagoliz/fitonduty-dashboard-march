@@ -1,0 +1,62 @@
+---
+- name: Setup FitonDuty March Dashboard Database
+  hosts: database_servers
+  gather_facts: yes
+  become: yes
+  vars_files:
+    - "../vars/{{ environment_name }}/vault.yml"
+  vars:
+    # Database configuration
+    server_db_name: "{{ environment_name | default('testing') }}"
+    march_db_name: "{{ db_name | default('fitonduty_march') }}"
+    march_db_user: "{{ db_user | default('fitonduty_march') }}"
+    database_host: "{{ ansible_host | default('localhost') }}"
+    database_port: "{{ db_port | default('5432') }}"
+    postgres_user: "{{ pg_admin_user | default('postgres') }}"
+
+  pre_tasks:
+    - name: Verify required variables are set
+      assert:
+        that:
+          - vault_postgres_password is defined
+          - vault_march_db_password is defined
+        fail_msg: "Required vault variables not set. Please check your vault file."
+
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+    - name: Print db_host
+      ansible.builtin.debug:
+        msg: System {{ server_db_name }} has db_host {{ database_host }}
+
+  roles:
+    - march_database
+
+  post_tasks:
+    - name: Verify database setup
+      postgresql_query:
+        login_host: "{{ database_host }}"
+        login_port: "{{ database_port }}"
+        login_user: "{{ march_db_user }}"
+        login_password: "{{ vault_march_db_password }}"
+        login_db: "{{ march_db_name }}"
+        query: "SELECT COUNT(*) FROM march_events"
+      register: march_count
+      become_user: postgres
+        
+    - name: Display setup results
+      debug:
+        msg: |
+          ✅ March Dashboard Database Setup Complete!
+          
+          Database: {{ march_db_name }}
+          User: {{ march_db_user }}
+          Host: {{ database_host }}:{{ database_port }}
+          
+          March Events in Database: {{ march_count.query_result[0][0] }}
+          
+          Connection String:
+          DATABASE_URL='postgresql://{{ march_db_user }}:{{ vault_march_db_password }}@{{ database_host }}:{{ database_port }}/{{ march_db_name }}'
+          
+          Check /opt/fitonduty-march/database_info.txt for full details.
