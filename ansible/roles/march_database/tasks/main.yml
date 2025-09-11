@@ -91,10 +91,11 @@
     state: present
   become_user: postgres
 
-- name: Add march database entry to pg_hba.conf
+- name: Add march database entry to pg_hba.conf (before reject line)
   blockinfile:
     path: "/etc/postgresql/{{ postgresql_version | default('16') }}/main/pg_hba.conf"
     marker: "# {mark} ANSIBLE MANAGED BLOCK - March Dashboard"
+    insertbefore: "^host.*all.*all.*0\\.0\\.0\\.0/0.*reject"
     block: |
       # Allow march dashboard connections
       host    {{ march_db_name }}    {{ march_db_user }}    0.0.0.0/0    scram-sha-256

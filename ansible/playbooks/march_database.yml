@@ -54,7 +54,7 @@
           User: {{ march_db_user }}
           Host: {{ database_host }}:{{ database_port }}
           
-          March Events in Database: {{ march_count.query_result[0][0] }}
+          March Events in Database: {{ march_count.query_result }}
           
           Connection String:
           DATABASE_URL='postgresql://{{ march_db_user }}:{{ vault_march_db_password }}@{{ database_host }}:{{ database_port }}/{{ march_db_name }}'
