@@ -102,7 +102,7 @@ def user_can_view_march(user_id: int, march_id: int, user_role: str) -> bool:
         # Participants can only view marches they participated in
         if user_role == 'participant':
             query = """
-                SELECT 1 FROM march_participants 
+                SELECT 1 FROM march_participants
                 WHERE user_id = :user_id AND march_id = :march_id
             """
 
@@ -155,7 +155,7 @@ def get_accessible_marches(user_id: int, user_role: str):
                 FROM march_events me
                 LEFT JOIN groups g ON me.group_id = g.id
                 LEFT JOIN march_participants mp ON me.id = mp.march_id
-                GROUP BY me.id, me.name, me.date, me.duration_hours, me.distance_km, 
+                GROUP BY me.id, me.name, me.date, me.duration_hours, me.distance_km,
                          me.route_description, me.status, g.group_name
                 ORDER BY me.date DESC
             """
@@ -178,7 +178,7 @@ def get_accessible_marches(user_id: int, user_role: str):
                 FROM march_events me
                 LEFT JOIN groups g ON me.group_id = g.id
                 LEFT JOIN march_participants mp ON me.id = mp.march_id
-                GROUP BY me.id, me.name, me.date, me.duration_hours, me.distance_km, 
+                GROUP BY me.id, me.name, me.date, me.duration_hours, me.distance_km,
                          me.route_description, me.status, g.group_name
                 ORDER BY me.date DESC
             """
