@@ -55,8 +55,8 @@ def update_last_login(user_id: int):
     try:
         manager = get_db_manager()
         query = """
-            UPDATE users 
-            SET last_login = CURRENT_TIMESTAMP 
+            UPDATE users
+            SET last_login = CURRENT_TIMESTAMP
             WHERE id = :user_id
         """
         manager.execute_raw(query, {'user_id': user_id})
@@ -69,7 +69,7 @@ def get_user_marches(user_id: int):
     try:
         manager = get_db_manager()
         query = """
-            SELECT 
+            SELECT
                 me.id,
                 me.name,
                 me.date,
@@ -141,7 +141,7 @@ def get_accessible_marches(user_id: int, user_role: str):
         if user_role == 'admin':
             # Admins see all marches
             query = """
-                SELECT 
+                SELECT
                     me.id,
                     me.name,
                     me.date,
@@ -164,7 +164,7 @@ def get_accessible_marches(user_id: int, user_role: str):
         elif user_role == 'supervisor':
             # Supervisors see all marches (for now - could be restricted to their groups later)
             query = """
-                SELECT 
+                SELECT
                     me.id,
                     me.name,
                     me.date,
@@ -187,7 +187,7 @@ def get_accessible_marches(user_id: int, user_role: str):
         else:
             # Participants only see marches they participated in
             query = """
-                SELECT 
+                SELECT
                     me.id,
                     me.name,
                     me.date,
@@ -203,7 +203,7 @@ def get_accessible_marches(user_id: int, user_role: str):
                 LEFT JOIN groups g ON me.group_id = g.id
                 LEFT JOIN march_participants mp_all ON me.id = mp_all.march_id
                 JOIN march_participants mp_user ON me.id = mp_user.march_id AND mp_user.user_id = :user_id
-                GROUP BY me.id, me.name, me.date, me.duration_hours, me.distance_km, 
+                GROUP BY me.id, me.name, me.date, me.duration_hours, me.distance_km,
                          me.route_description, me.status, g.group_name, mp_user.completed
                 ORDER BY me.date DESC
             """
