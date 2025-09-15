@@ -56,7 +56,8 @@ app = dash.Dash(
     __name__,
     server=server,
     external_stylesheets=[
-        dbc.themes.BOOTSTRAP,
+        # Use a modern Bootswatch theme for improved defaults
+        dbc.themes.LUX,
         "https://use.fontawesome.com/releases/v5.15.4/css/all.css"
     ],
     suppress_callback_exceptions=True,
@@ -159,8 +160,10 @@ def create_authenticated_layout(march_id=None, participant_id=None):
     # Custom navigation bar with better alignment
     navbar = html.Nav([
         html.Div([
-            html.A(
-                "FitonDuty March Dashboard",
+            html.A([
+                html.I(className="fas fa-chart-line me-2"),
+                "FitonDuty March Dashboard"
+            ],
                 href="/",
                 className="navbar-brand"
             ),
@@ -168,7 +171,7 @@ def create_authenticated_layout(march_id=None, participant_id=None):
                 create_user_info_dropdown(current_user)
             ], className="navbar-nav")
         ], className="navbar-content")
-    ], className="navbar navbar-expand navbar-dark")
+    ], className="navbar navbar-expand navbar-dark navbar-simple")
 
     # Main content based on route
     if participant_id and march_id:
@@ -194,7 +197,7 @@ def create_authenticated_layout(march_id=None, participant_id=None):
             html.Hr(),
             html.P([
                 f"Logged in as: {current_user.role.title()} - {current_user.display_name} | ",
-                "Environment: Development"
+                f"Environment: {getattr(app_config, 'ENV', 'development').title()}"
             ], className="text-center text-muted small")
         ])
     ])
@@ -204,7 +207,7 @@ def create_authenticated_layout(march_id=None, participant_id=None):
         dbc.Container([
             main_content,
             footer
-        ], className="mt-4")
+        ], className="main-content-wrapper mt-4")
     ])
 
 

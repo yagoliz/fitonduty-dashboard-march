@@ -2,7 +2,7 @@
 
 import dash_bootstrap_components as dbc
 import pandas as pd
-from dash import html
+from dash import html, dcc
 from flask_login import current_user
 
 from components.auth import create_access_denied
@@ -78,26 +78,24 @@ def create_accessible_march_selector():
             elif current_user.role == 'admin':
                 card_color = "primary" if march['status'] == 'published' else "secondary"
 
+            href = f"/march/{march['id']}"
             card = dbc.Card([
                 dbc.CardBody([
                     html.H5([
                         march['name'],
                         _get_status_badge(march, current_user.role)
-                    ], className="card-title"),
+                    ], className="card-title mb-2"),
                     html.P([
                         html.I(className="fas fa-calendar me-2"), html.Strong("Date: "), f"{march['date']}", html.Br(),
                         html.I(className="fas fa-route me-2"), html.Strong("Distance: "), f"{march['distance_km']} km" if pd.notna(march['distance_km']) else "TBD", html.Br(),
                         html.I(className="fas fa-users me-2"), html.Strong("Participants: "), f"{march['completed_count']}/{march['participant_count']} completed"
-                    ], className="card-text"),
-                    dbc.Button(
-                        _get_view_button_text(march, current_user.role),
-                        color="primary",
-                        size="sm",
-                        id={"type": "view-march-btn", "march_id": march['id']}
-                    )
+                    ], className="card-text mb-0"),
+                    html.Div([
+                        html.Span([_get_view_button_text(march, current_user.role), " ", html.I(className="fas fa-chevron-right")], className="link-subtle small")
+                    ], className="mt-2")
                 ])
-            ], color=card_color, outline=True, className="mb-3")
-            march_cards.append(card)
+            ], color=card_color, outline=True, className="mb-3 card-clickable")
+            march_cards.append(dcc.Link(card, href=href, className="card-link-wrapper"))
 
         title_text = _get_selector_title(current_user.role)
 
@@ -217,7 +215,11 @@ def create_participant_march_view(march_id: int, march_info):
     march_header = _create_march_header(march_info, show_admin_controls=False)
 
     # Personal performance card
-    personal_card = _create_personal_performance_card(user_summary)
+    personal_card = _create_personal_performance_card(
+        user_summary,
+        leaderboard,
+        detail_href=f"/march/{march_id}/participant/{current_user.id}"
+    )
 
     # Limited leaderboard (just rankings, no detailed metrics)
     leaderboard_component = _create_participant_leaderboard_table(leaderboard, current_user.username)
@@ -240,20 +242,7 @@ def create_participant_march_view(march_id: int, march_info):
                 ], className="section-title"),
                 leaderboard_component
             ], md=6)
-        ], className="mb-4"),
-
-        # Link to detailed personal analysis
-        dbc.Row([
-            dbc.Col([
-                dbc.Button([
-                    html.I(className="fas fa-chart-line me-2"),
-                    "View Detailed Analysis"
-                ],
-                color="success",
-                size="lg",
-                id={"type": "view-participant-btn", "user_id": current_user.id, "march_id": march_id})
-            ], className="text-center")
-        ])
+        ], className="mb-4")
     ])
 
 
@@ -391,8 +380,17 @@ def _create_participant_leaderboard_table(leaderboard_df, current_username):
 
     table_rows = []
     for _, row in leaderboard_df.iterrows():
-        # Highlight current user
-        row_class = "table-success" if row['username'] == current_username else ""
+        # Highlight current user and accent top ranks
+        classes = []
+        if row['username'] == current_username:
+            classes.append("table-success")
+        try:
+            r = int(row['rank'])
+            if r in (1, 2, 3):
+                classes.append(f"row-top-{r}")
+        except Exception:
+            pass
+        row_class = " ".join(classes)
 
         # Medal emoji for top 3
         rank_display = row['rank']
@@ -412,8 +410,8 @@ def _create_participant_leaderboard_table(leaderboard_df, current_username):
         table_row = html.Tr([
             html.Td(rank_display),
             html.Td(username_display),
-            html.Td(f"{row['effort_score']:.1f}" if pd.notna(row['effort_score']) else "-"),
-            html.Td(f"{row['finish_time_minutes']} min" if pd.notna(row['finish_time_minutes']) else "-")
+            html.Td(f"{row['effort_score']:.1f}" if pd.notna(row['effort_score']) else "-", className="numeric"),
+            html.Td(f"{row['finish_time_minutes']} min" if pd.notna(row['finish_time_minutes']) else "-", className="numeric")
         ], className=row_class)
         table_rows.append(table_row)
 
@@ -427,52 +425,149 @@ def _create_participant_leaderboard_table(leaderboard_df, current_username):
             ])
         ]),
         html.Tbody(table_rows)
-    ], striped=True, hover=True, size="sm")
+    ], striped=True, hover=True, size="sm", className="table-professional table-compact")
 
-    return table
+    return html.Div(table, className="table-responsive")
 
 
-def _create_personal_performance_card(user_summary):
-    """Create personal performance summary card"""
+def _create_personal_performance_card(user_summary, leaderboard_df=None, detail_href: str | None = None):
+    """Create personal performance summary card with KPIs and effort bar"""
 
+    completed = bool(user_summary.get('completed'))
+    finish_time = user_summary.get('finish_time_minutes')
+    avg_hr = user_summary.get('avg_hr')
+    steps = user_summary.get('total_steps')
+    pace = user_summary.get('avg_pace_kmh')
+    effort = user_summary.get('effort_score') or 0
+
+    # Header badges: completion + rank/percentile
     completion_badge = dbc.Badge(
-        "✅ Completed" if user_summary['completed'] else "❌ Did Not Finish",
-        color="success" if user_summary['completed'] else "danger",
-        className="mb-2"
+        "Completed" if completed else "Did Not Finish",
+        color="success" if completed else "danger",
+        className="me-2"
     )
 
-    metrics = []
-    if user_summary['completed']:
-        metrics.extend([
-            html.P([
-                html.Strong("⏱️ Finish Time: "),
-                f"{user_summary['finish_time_minutes']} minutes" if pd.notna(user_summary['finish_time_minutes']) else "N/A"
-            ]),
-            html.P([
-                html.Strong("💓 Average HR: "),
-                f"{user_summary['avg_hr']} bpm" if pd.notna(user_summary['avg_hr']) else "N/A"
-            ]),
-            html.P([
-                html.Strong("👟 Total Steps: "),
-                f"{user_summary['total_steps']:,}" if pd.notna(user_summary['total_steps']) else "N/A"
-            ]),
-            html.P([
-                html.Strong("🏃 Average Pace: "),
-                f"{user_summary['avg_pace_kmh']:.1f} km/h" if pd.notna(user_summary['avg_pace_kmh']) else "N/A"
-            ]),
-            html.P([
-                html.Strong("⚡ Effort Score: "),
-                f"{user_summary['effort_score']:.1f}" if pd.notna(user_summary['effort_score']) else "N/A"
-            ])
-        ])
-    else:
-        metrics.append(
-            html.P("Complete the march to see detailed performance metrics.", className="text-muted")
-        )
+    rank_badge = html.Span()
+    if leaderboard_df is not None and not leaderboard_df.empty:
+        try:
+            total = len(leaderboard_df)
+            row = leaderboard_df[leaderboard_df['username'] == current_user.username]
+            if not row.empty and 'rank' in row.columns:
+                rank_val = int(row.iloc[0]['rank'])
+                pct = rank_val / total if total else 1
+                if pct <= 0.1:
+                    rank_badge = dbc.Badge("Top 10%", color="warning", className="me-2")
+                elif pct <= 0.25:
+                    rank_badge = dbc.Badge("Top 25%", color="info", className="me-2")
+                else:
+                    rank_badge = dbc.Badge(f"Rank {rank_val}/{total}", color="light", className="me-2")
+        except Exception:
+            pass
 
-    return dbc.Card([
+    # KPI chips
+    def fmt(v, fmt_str, na="N/A"):
+        try:
+            if v is None or (isinstance(v, float) and pd.isna(v)):
+                return na
+            return fmt_str.format(v)
+        except Exception:
+            return na
+
+    kpis = dbc.Row([
+        dbc.Col(html.Div([
+            html.I(className="fas fa-tachometer-alt me-2"),
+            html.Span(fmt(pace, "{:.1f} km/h"), className="kpi-value"),
+            html.Div("Avg Pace", className="kpi-label")
+        ], className="kpi-chip"), md=3, xs=6),
+        dbc.Col(html.Div([
+            html.I(className="fas fa-heartbeat me-2"),
+            html.Span(fmt(avg_hr, "{} bpm"), className="kpi-value"),
+            html.Div("Avg HR", className="kpi-label")
+        ], className="kpi-chip"), md=3, xs=6),
+        dbc.Col(html.Div([
+            html.I(className="fas fa-walking me-2"),
+            html.Span(fmt(steps, "{:,.0f}"), className="kpi-value"),
+            html.Div("Steps", className="kpi-label")
+        ], className="kpi-chip"), md=3, xs=6),
+        dbc.Col(html.Div([
+            html.I(className="fas fa-bolt me-2"),
+            html.Span(fmt(effort, "{:.0f}"), className="kpi-value"),
+            html.Div("Effort", className="kpi-label")
+        ], className="kpi-chip"), md=3, xs=6)
+    ], className="g-2 mb-2")
+
+    # Group deltas (optional, if leaderboard has fields)
+    deltas_row = html.Div()
+    if leaderboard_df is not None and not leaderboard_df.empty:
+        try:
+            avg_group_pace = leaderboard_df['avg_pace_kmh'].dropna().mean() if 'avg_pace_kmh' in leaderboard_df.columns else None
+            avg_group_effort = leaderboard_df['effort_score'].dropna().mean() if 'effort_score' in leaderboard_df.columns else None
+            delta_pace = None if avg_group_pace is None or pace is None or pd.isna(pace) else pace - avg_group_pace
+            delta_eff = None if avg_group_effort is None or effort is None or pd.isna(effort) else effort - avg_group_effort
+
+            def delta_badge(val, label):
+                if val is None:
+                    return html.Span()
+                color = "success" if val >= 0 else "danger"
+                arrow = "▲" if val >= 0 else "▼"
+                display = f"{label} {arrow} {abs(val):.1f} vs group"
+                return dbc.Badge(display, color=color, className="me-2")
+
+            deltas_row = html.Div([
+                delta_badge(delta_pace, "Pace"),
+                delta_badge(delta_eff, "Effort")
+            ], className="mb-2")
+        except Exception:
+            pass
+
+    # Effort progress bar
+    effort_val = 0
+    try:
+        effort_val = max(0, min(100, int(round(float(effort)))))
+    except Exception:
+        pass
+
+    effort_bar = dbc.Progress(
+        value=effort_val,
+        color="info",
+        label=f"Effort {effort_val}/100",
+        striped=True,
+        animated=False,
+        style={"height": "0.75rem"}
+    )
+
+    # Footer metrics for finish time if completed
+    footer = html.Div()
+    if completed:
+        footer = html.Div([
+            html.Small([
+                html.I(className="far fa-clock me-1"),
+                "Finish: ",
+                fmt(finish_time, "{} min")
+            ], className="text-muted")
+        ])
+
+    # Optional subtle inline CTA label (non-link if card is wrapped as a link)
+    cta_link = html.Span()
+    if detail_href:
+        cta_link = html.Span([
+            html.Span("View detailed analysis", className="me-1"),
+            html.I(className="fas fa-chevron-right")
+        ], className="link-subtle float-end")
+
+    card_inner = dbc.Card([
         dbc.CardBody([
-            completion_badge,
-            html.Hr()
-        ] + metrics)
-    ])
+            html.Div([
+                html.Div([completion_badge, rank_badge], className="mb-2"),
+                cta_link
+            ], className="d-flex justify-content-between align-items-start"),
+            kpis,
+            deltas_row,
+            effort_bar,
+            html.Div(footer, className="mt-2")
+        ])
+    ], className="card-professional card-clickable")
+
+    if detail_href:
+        return dcc.Link(card_inner, href=detail_href, className="card-link-wrapper")
+    return card_inner

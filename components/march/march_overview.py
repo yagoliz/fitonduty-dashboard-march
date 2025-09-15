@@ -2,7 +2,7 @@
 
 import dash_bootstrap_components as dbc
 import pandas as pd
-from dash import html
+from dash import html, dcc
 
 from utils.database import get_march_events, get_march_leaderboard, get_march_participants
 
@@ -46,27 +46,22 @@ def create_march_selector():
 
         march_cards = []
         for _, march in march_events.iterrows():
+            href = f"/march/{march['id']}"
             card = dbc.Card([
                 dbc.CardBody([
-                    html.H5(march['name'], className="card-title text-professional"),
+                    html.H5(march['name'], className="card-title text-professional mb-2"),
                     html.P([
                         html.I(className="fas fa-calendar me-2"), html.Strong("Date: "), f"{march['date']}", html.Br(),
                         html.I(className="fas fa-route me-2"), html.Strong("Distance: "), f"{march['distance_km']} km" if pd.notna(march['distance_km']) else "TBD", html.Br(),
                         html.I(className="fas fa-clock me-2"), html.Strong("Duration: "), f"{march['duration_hours']} hours" if pd.notna(march['duration_hours']) else "TBD", html.Br(),
                         html.I(className="fas fa-users me-2"), html.Strong("Participants: "), f"{march['completed_count']}/{march['participant_count']} completed"
-                    ], className="card-text"),
-                    dbc.Button([
-                        html.I(className="fas fa-chart-line me-2"),
-                        "View Results"
-                    ],
-                        color="primary",
-                        size="sm",
-                        className="btn-professional",
-                        id={"type": "view-march-btn", "march_id": march['id']}
-                    )
+                    ], className="card-text mb-0"),
+                    html.Div([
+                        html.Span(["View results ", html.I(className="fas fa-chevron-right")], className="link-subtle small")
+                    ], className="mt-2")
                 ])
-            ], className="mb-3 performance-card")
-            march_cards.append(card)
+            ], className="mb-3 performance-card card-clickable")
+            march_cards.append(dcc.Link(card, href=href, className="card-link-wrapper"))
 
         return html.Div([
             html.H4([
@@ -171,13 +166,22 @@ def create_leaderboard_table(leaderboard_df):
         else:
             rank_display = dbc.Badge(f"{rank_display}th", color="light", className="rank-badge")
 
+        # Row accent for top 3
+        row_class = ""
+        try:
+            r = int(row['rank'])
+            if r in (1, 2, 3):
+                row_class = f"row-top-{r}"
+        except Exception:
+            pass
+
         table_row = html.Tr([
             html.Td(rank_display),
             html.Td(row['username']),
-            html.Td(f"{row['effort_score']:.1f}" if pd.notna(row['effort_score']) else "-"),
-            html.Td(f"{row['finish_time_minutes']} min" if pd.notna(row['finish_time_minutes']) else "-"),
-            html.Td(f"{row['avg_pace_kmh']:.1f} km/h" if pd.notna(row['avg_pace_kmh']) else "-")
-        ])
+            html.Td(f"{row['effort_score']:.1f}" if pd.notna(row['effort_score']) else "-", className="numeric"),
+            html.Td(f"{row['finish_time_minutes']} min" if pd.notna(row['finish_time_minutes']) else "-", className="numeric"),
+            html.Td(f"{row['avg_pace_kmh']:.1f} km/h" if pd.notna(row['avg_pace_kmh']) else "-", className="numeric")
+        ], className=row_class)
         table_rows.append(table_row)
 
     table = dbc.Table([
@@ -191,9 +195,9 @@ def create_leaderboard_table(leaderboard_df):
             ])
         ]),
         html.Tbody(table_rows)
-    ], striped=True, hover=True, size="sm", className="table-professional")
-
-    return table
+    ], striped=True, hover=True, size="sm", className="table-professional table-compact")
+    # Wrap table for horizontal responsiveness on small screens
+    return html.Div(table, className="table-responsive")
 
 
 def create_participants_table(participants_df):
@@ -213,10 +217,12 @@ def create_participants_table(participants_df):
             className="me-2 status-completed" if row['completed'] else "me-2 status-failed"
         )
 
+        row_class = "row-completed" if row['completed'] else "row-dnf"
+
         table_row = html.Tr([
             html.Td([status_badge, row['username']]),
-            html.Td(f"{row['avg_hr']} bpm" if pd.notna(row['avg_hr']) else "-"),
-            html.Td(f"{row['total_steps']:,}" if pd.notna(row['total_steps']) else "-"),
+            html.Td(f"{row['avg_hr']} bpm" if pd.notna(row['avg_hr']) else "-", className="numeric"),
+            html.Td(f"{row['total_steps']:,}" if pd.notna(row['total_steps']) else "-", className="numeric"),
             html.Td(
                 dbc.Button([
                     html.I(className="fas fa-eye me-1"),
@@ -226,9 +232,10 @@ def create_participants_table(participants_df):
                     color="outline-primary",
                     className="btn-outline-professional",
                     id={"type": "view-participant-btn", "user_id": row['user_id'], "march_id": row['march_id']}
-                ) if row['completed'] else "-"
+                ) if row['completed'] else "-",
+                className="actions-cell"
             )
-        ])
+        ], className=row_class)
         table_rows.append(table_row)
 
     table = dbc.Table([
@@ -241,9 +248,9 @@ def create_participants_table(participants_df):
             ])
         ]),
         html.Tbody(table_rows)
-    ], striped=True, hover=True, size="sm", className="table-professional")
-
-    return table
+    ], striped=True, hover=True, size="sm", className="table-professional table-compact")
+    # Wrap table for horizontal responsiveness on small screens
+    return html.Div(table, className="table-responsive")
 
 
 def create_error_message(message: str):

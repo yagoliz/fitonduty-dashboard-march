@@ -208,6 +208,12 @@ h6 { font-size: 1rem; color: var(--text-secondary); }
   box-shadow: var(--shadow-lg);
 }
 
+/* Accessible focus ring for all buttons */
+.btn:focus {
+  outline: none !important;
+  box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.35) !important;
+}
+
 .btn-outline-professional {
   border: 2px solid var(--primary-color);
   color: var(--primary-color);
@@ -250,10 +256,65 @@ h6 { font-size: 1rem; color: var(--text-secondary); }
   cursor: pointer;
 }
 
+/* Improve muted text contrast slightly for readability */
+.text-muted { color: #6f7680 !important; }
+
 .table-professional {
   border-radius: var(--border-radius-md);
   overflow: hidden;
   box-shadow: var(--shadow-sm);
+}
+
+/* Compact table density */
+.table-compact th,
+.table-compact td {
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+}
+
+/* Sticky headers inside responsive wrapper */
+.table-responsive .table-professional thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background-color: var(--background-secondary);
+}
+
+/* Right-align numeric cells for scannability */
+.table-professional td.numeric,
+.table-professional th.numeric {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.table-professional td.actions-cell {
+  text-align: right;
+}
+
+/* Row accents for highlights */
+.table-professional tbody tr.row-top-1 {
+  border-left: 4px solid #f1c40f;
+  background-color: rgba(241, 196, 15, 0.06);
+}
+.table-professional tbody tr.row-top-2 {
+  border-left: 4px solid #bdc3c7;
+  background-color: rgba(189, 195, 199, 0.06);
+}
+.table-professional tbody tr.row-top-3 {
+  border-left: 4px solid #cd7f32;
+  background-color: rgba(205, 127, 50, 0.06);
+}
+
+.table-professional tbody tr.row-completed {
+  border-left: 3px solid var(--accent-success);
+}
+.table-professional tbody tr.row-dnf {
+  border-left: 3px solid var(--accent-danger);
+}
+
+/* Subtle hover polish */
+.table-professional.table-hover tbody tr:hover {
+  background-color: #f6f8fb;
 }
 
 /* ============================================
@@ -312,6 +373,9 @@ h6 { font-size: 1rem; color: var(--text-secondary); }
 }
 
 .navbar-simple {
+  /* Reduce vertical padding to make navbar shorter */
+  padding-top: 0.35rem !important;
+  padding-bottom: 0.35rem !important;
   padding-left: var(--spacing-lg) !important;
   padding-right: var(--spacing-lg) !important;
 }
@@ -320,6 +384,12 @@ h6 { font-size: 1rem; color: var(--text-secondary); }
   border-radius: var(--border-radius-md);
   box-shadow: var(--shadow-lg);
   border: none;
+}
+
+/* Slightly tighter dropdown toggle in compact navbar */
+.navbar-simple .dropdown-toggle {
+  padding-top: 0.25rem !important;
+  padding-bottom: 0.25rem !important;
 }
 
 /* ============================================
@@ -402,6 +472,7 @@ h6 { font-size: 1rem; color: var(--text-secondary); }
 body {
   margin: 0;
   padding: 0;
+  background-color: var(--background-secondary);
 }
 
 /* Ensure full width for navbar container but constrain content */
@@ -436,10 +507,54 @@ body {
   margin-left: 0 !important;
 }
 
+/* Improve dropdown toggle visibility on navbar */
+.navbar .dropdown-toggle {
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.4) !important;
+}
+.navbar .dropdown-toggle:hover,
+.navbar .dropdown-toggle:focus {
+  color: #ffffff !important;
+  background-color: rgba(255, 255, 255, 0.08) !important;
+}
+
 /* Content spacing */
 .main-content-wrapper {
   padding-top: var(--spacing-lg);
   padding-bottom: var(--spacing-xl);
+}
+
+/* Compact KPI chips for participant overview */
+.kpi-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--background-secondary);
+  border: 1px solid var(--neutral-200);
+  border-radius: var(--border-radius-md);
+  padding: 0.5rem 0.75rem;
+  height: 100%;
+}
+
+.kpi-value {
+  font-weight: 700;
+  color: var(--primary-color);
+}
+
+.kpi-label {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  line-height: 1;
+}
+
+/* Subtle inline CTA link */
+.link-subtle {
+  color: var(--secondary-dark);
+  text-decoration: none;
+  font-weight: 600;
+}
+.link-subtle:hover {
+  text-decoration: underline;
 }
 
 /* ============================================
@@ -501,4 +616,26 @@ body {
     font-size: 0.875rem;
     padding: 0.375rem 0.75rem;
   }
+}
+
+/* Clickable card wrapper and polish */
+.card-link-wrapper {
+  display: block;
+  text-decoration: none !important;
+  color: inherit !important;
+}
+
+.card-clickable { cursor: pointer; }
+.card-link-wrapper:focus .card-clickable,
+.card-link-wrapper:hover .card-clickable {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.card-link-wrapper:focus {
+  outline: none;
+}
+
+.card-link-wrapper:focus-visible .card-clickable {
+  box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.35);
 }

@@ -134,7 +134,7 @@ def create_participant_detail_view(march_id: int, user_id: int) -> html.Div:
             dbc.Row([
                 dbc.Col([
                     html.H2([
-                        html.I(className="fas fa-analytics me-2"),
+                        html.I(className="fas fa-chart-line me-2"),
                         "March Performance Analysis",
                         html.Small(f" - {participant_name}", className="text-muted ms-2")
                     ], className="text-gradient"),
