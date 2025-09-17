@@ -18,7 +18,7 @@ def create_login_form():
                     dbc.CardHeader([
                         html.H4([
                             html.I(className="fas fa-shield-alt me-3"),
-                            "Login to the March Dashboard"
+                            "Dashboard Login"
                         ], className="text-center mb-0 text-white")
                     ], className="bg-gradient-primary text-white py-3"),
                     dbc.CardBody([

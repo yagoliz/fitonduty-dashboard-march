@@ -113,11 +113,14 @@ h6 { font-size: 1rem; color: var(--text-secondary); }
   border-bottom: 1px solid var(--border-color);
   font-weight: 600;
   color: var(--primary-color);
+  border-radius: var(--border-radius-lg) var(--border-radius-lg) 0 0;
 }
 
 .card-professional {
   background: linear-gradient(135deg, var(--background-primary) 0%, var(--background-secondary) 100%);
   border: 1px solid var(--neutral-300);
+  border-radius: var(--border-radius-lg);
+  width: 100%;
 }
 
 .performance-card {
@@ -343,11 +346,12 @@ h6 { font-size: 1rem; color: var(--text-secondary); }
 }
 
 .rank-badge {
-  font-size: 1rem;
-  /* min-width: 2rem; */
+  font-size: .8rem;
+  min-width: 3.7rem;
   font-weight: 600;
   padding: 0.4em 0.8em;
   border-radius: var(--border-radius-lg);
+  text-align: center;
 }
 
 .rank-1 { background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%); color: #8b7500; }
@@ -457,6 +461,8 @@ h6 { font-size: 1rem; color: var(--text-secondary); }
   box-shadow: var(--shadow-sm);
   padding: var(--spacing-md);
   margin-bottom: var(--spacing-lg);
+  min-height: 450px;
+  max-height: 450px;
 }
 
 /* ============================================

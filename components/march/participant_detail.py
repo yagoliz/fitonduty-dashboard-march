@@ -313,9 +313,9 @@ def create_back_to_overview_button(march_id: int) -> dbc.Row:
                     "Back to March Overview"
                 ],
                 id={"type": "back-to-march-btn", "march_id": march_id},
-                color="outline-primary",
+                color="outline-secondary",
                 size="sm",
-                className="btn-outline-professional"
+                # className="btn-professional"
             )
         ], width="auto")
     ], className="mb-3")

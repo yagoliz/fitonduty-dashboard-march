@@ -81,7 +81,7 @@ def create_hr_speed_timeline(timeseries_data: pd.DataFrame, participant_name: st
 
     # Update layout with professional styling
     fig.update_layout(
-        height=400,
+        height=350,
         hovermode='x unified',
         legend=dict(
             orientation="h",
@@ -158,7 +158,7 @@ def create_hr_zones_chart(hr_zones_data: dict[str, float]) -> go.Figure:
             xanchor='center',
             font=dict(size=14, color="#2c3e50")
         ),
-        height=300,
+        height=350,
         margin=dict(l=20, r=20, t=60, b=20),
         showlegend=True,
         legend=dict(
@@ -233,7 +233,7 @@ def create_movement_speeds_chart(movement_data: dict[str, int]) -> go.Figure:
             font=dict(size=14, color="#2c3e50")
         ),
         xaxis_title="Minutes",
-        height=250,
+        height=350,
         margin=dict(l=100, r=50, t=60, b=50),
         showlegend=False,
         plot_bgcolor='rgba(0,0,0,0)',
@@ -283,7 +283,7 @@ def create_cumulative_steps_chart(timeseries_data: pd.DataFrame) -> go.Figure:
         ),
         xaxis_title="Time (minutes)",
         yaxis_title="Cumulative Steps",
-        height=300,
+        height=350,
         margin=dict(l=50, r=50, t=60, b=50),
         showlegend=False,
         plot_bgcolor='rgba(0,0,0,0)',
