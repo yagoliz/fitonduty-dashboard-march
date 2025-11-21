@@ -1,0 +1,47 @@
+# March Dashboard Seed Data Configuration - Example
+# Generated on: 2025-03-15 10:00:00
+# Campaign: fitonduty_march_example
+#
+# IMPORTANT SECURITY NOTES:
+# 1. All passwords in this file are auto-generated
+# 2. Change admin password before production use
+# 3. Keep this file secure and never commit to public repositories
+# 4. Consider using encryption for production environments
+#
+
+database:
+  name: fitonduty_march_example
+
+admins:
+  - username: admin
+    password: CHANGE_THIS_PASSWORD
+
+groups:
+  - name: Squad Alpha
+    description: March participant group for Squad Alpha
+    created_by: admin
+  - name: Squad Bravo
+    description: March participant group for Squad Bravo
+    created_by: admin
+
+participants:
+  - username: participant01
+    password: CHANGE_PASSWORD_01
+    groups: Squad Alpha
+    role: participant
+  - username: participant02
+    password: CHANGE_PASSWORD_02
+    groups: Squad Alpha
+    role: participant
+  - username: participant03
+    password: CHANGE_PASSWORD_03
+    groups: Squad Alpha
+    role: participant
+  - username: participant04
+    password: CHANGE_PASSWORD_04
+    groups: Squad Bravo
+    role: participant
+  - username: participant05
+    password: CHANGE_PASSWORD_05
+    groups: Squad Bravo
+    role: participant

@@ -234,14 +234,7 @@ def create_participant_march_view(march_id: int, march_info):
                     "Your Performance"
                 ], className="section-title"),
                 personal_card
-            ], md=6),
-            dbc.Col([
-                html.H5([
-                    html.I(className="fas fa-trophy me-2 text-warning"),
-                    "Leaderboard"
-                ], className="section-title"),
-                leaderboard_component
-            ], md=6)
+            ], md=12)
         ], className="mb-4")
     ])
 
@@ -410,7 +403,7 @@ def _create_participant_leaderboard_table(leaderboard_df, current_username):
         table_row = html.Tr([
             html.Td(rank_display),
             html.Td(username_display),
-            html.Td(f"{row['effort_score']:.1f}" if pd.notna(row['effort_score']) else "-", className="numeric"),
+            html.Td(f"{row['avg_hr']} bpm" if pd.notna(row['avg_hr']) else "-", className="numeric"),
             html.Td(f"{row['finish_time_minutes']} min" if pd.notna(row['finish_time_minutes']) else "-", className="numeric")
         ], className=row_class)
         table_rows.append(table_row)
@@ -420,7 +413,7 @@ def _create_participant_leaderboard_table(leaderboard_df, current_username):
             html.Tr([
                 html.Th("Rank"),
                 html.Th("Participant"),
-                html.Th("Effort Score"),
+                html.Th("Avg HR"),
                 html.Th("Finish Time")
             ])
         ]),
@@ -436,9 +429,9 @@ def _create_personal_performance_card(user_summary, leaderboard_df=None, detail_
     completed = bool(user_summary.get('completed'))
     finish_time = user_summary.get('finish_time_minutes')
     avg_hr = user_summary.get('avg_hr')
+    max_hr = user_summary.get('max_hr')
     steps = user_summary.get('total_steps')
     pace = user_summary.get('avg_pace_kmh')
-    effort = user_summary.get('effort_score') or 0
 
     # Header badges: completion + rank/percentile
     completion_badge = dbc.Badge(
@@ -490,9 +483,9 @@ def _create_personal_performance_card(user_summary, leaderboard_df=None, detail_
             html.Div("Steps", className="kpi-label")
         ], className="kpi-chip"), md=3, xs=6),
         dbc.Col(html.Div([
-            html.I(className="fas fa-bolt me-2"),
-            html.Span(fmt(effort, "{:.0f}"), className="kpi-value"),
-            html.Div("Effort", className="kpi-label")
+            html.I(className="fas fa-clock me-2"),
+            html.Span(fmt(finish_time, "{} min"), className="kpi-value"),
+            html.Div("Finish Time", className="kpi-label")
         ], className="kpi-chip"), md=3, xs=6)
     ], className="g-2 mb-2")
 
@@ -501,9 +494,9 @@ def _create_personal_performance_card(user_summary, leaderboard_df=None, detail_
     if leaderboard_df is not None and not leaderboard_df.empty:
         try:
             avg_group_pace = leaderboard_df['avg_pace_kmh'].dropna().mean() if 'avg_pace_kmh' in leaderboard_df.columns else None
-            avg_group_effort = leaderboard_df['effort_score'].dropna().mean() if 'effort_score' in leaderboard_df.columns else None
+            avg_group_hr = leaderboard_df['avg_hr'].dropna().mean() if 'avg_hr' in leaderboard_df.columns else None
             delta_pace = None if avg_group_pace is None or pace is None or pd.isna(pace) else pace - avg_group_pace
-            delta_eff = None if avg_group_effort is None or effort is None or pd.isna(effort) else effort - avg_group_effort
+            delta_hr = None if avg_group_hr is None or avg_hr is None or pd.isna(avg_hr) else avg_hr - avg_group_hr
 
             def delta_badge(val, label):
                 if val is None:
@@ -515,35 +508,19 @@ def _create_personal_performance_card(user_summary, leaderboard_df=None, detail_
 
             deltas_row = html.Div([
                 delta_badge(delta_pace, "Pace"),
-                delta_badge(delta_eff, "Effort")
+                delta_badge(delta_hr, "HR")
             ], className="mb-2")
         except Exception:
             pass
 
-    # Effort progress bar
-    effort_val = 0
-    try:
-        effort_val = max(0, min(100, int(round(float(effort)))))
-    except Exception:
-        pass
-
-    effort_bar = dbc.Progress(
-        value=effort_val,
-        color="info",
-        label=f"Effort {effort_val}/100",
-        striped=True,
-        animated=False,
-        style={"height": "0.75rem"}
-    )
-
-    # Footer metrics for finish time if completed
+    # Footer metrics
     footer = html.Div()
-    if completed:
+    if max_hr:
         footer = html.Div([
             html.Small([
-                html.I(className="far fa-clock me-1"),
-                "Finish: ",
-                fmt(finish_time, "{} min")
+                html.I(className="fas fa-heartbeat me-1"),
+                "Max HR: ",
+                fmt(max_hr, "{} bpm")
             ], className="text-muted")
         ])
 
@@ -563,7 +540,6 @@ def _create_personal_performance_card(user_summary, leaderboard_df=None, detail_
             ], className="d-flex justify-content-between align-items-start"),
             kpis,
             deltas_row,
-            effort_bar,
             html.Div(footer, className="mt-2")
         ])
     ], className="card-professional card-clickable")

@@ -178,7 +178,7 @@ def create_leaderboard_table(leaderboard_df):
         table_row = html.Tr([
             html.Td(rank_display),
             html.Td(row['username']),
-            html.Td(f"{row['effort_score']:.1f}" if pd.notna(row['effort_score']) else "-", className="numeric"),
+            html.Td(f"{row['avg_hr']} bpm" if pd.notna(row['avg_hr']) else "-", className="numeric"),
             html.Td(f"{row['finish_time_minutes']} min" if pd.notna(row['finish_time_minutes']) else "-", className="numeric"),
             html.Td(f"{row['avg_pace_kmh']:.1f} km/h" if pd.notna(row['avg_pace_kmh']) else "-", className="numeric")
         ], className=row_class)
@@ -189,7 +189,7 @@ def create_leaderboard_table(leaderboard_df):
             html.Tr([
                 html.Th("Rank"),
                 html.Th("Participant"),
-                html.Th("Effort Score"),
+                html.Th("Avg HR"),
                 html.Th("Time"),
                 html.Th("Avg Pace")
             ])

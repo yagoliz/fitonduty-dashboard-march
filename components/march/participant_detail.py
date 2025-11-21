@@ -8,15 +8,11 @@ from dash import dcc, html
 
 from utils.database import (
     get_march_timeseries_data,
-    get_participant_hr_zones,
     get_participant_march_summary,
-    get_participant_movement_speeds,
 )
 from utils.visualization.march_charts import (
     create_cumulative_steps_chart,
     create_hr_speed_timeline,
-    create_hr_zones_chart,
-    create_movement_speeds_chart,
     create_pace_consistency_chart,
     create_performance_summary_card_data,
 )
@@ -73,21 +69,21 @@ def create_performance_summary_cards(summary_data: dict[str, Any]) -> dbc.Row:
                         "Total Steps"
                     ], className="metric-label"),
                     html.H4(card_data['total_steps'], className="metric-value"),
-                    html.Small(f"HR: {card_data['avg_hr']} avg / {card_data['max_hr']} max", className="text-muted")
+                    html.Small("Step count", className="text-muted")
                 ])
             ], className="h-100 metric-card")
         ], width=6, lg=3),
 
-        # Effort Score
+        # Average Heart Rate
         dbc.Col([
             dbc.Card([
                 dbc.CardBody([
                     html.H6([
-                        html.I(className="fas fa-bolt me-2"),
-                        "Effort Score"
+                        html.I(className="fas fa-heartbeat me-2"),
+                        "Average Heart Rate"
                     ], className="metric-label"),
-                    html.H4(card_data['effort_score'], className="metric-value"),
-                    html.Small("Relative performance", className="text-muted")
+                    html.H4(card_data['avg_hr'], className="metric-value"),
+                    html.Small(f"Max: {card_data['max_hr']}", className="text-muted")
                 ])
             ], className="h-100 metric-card")
         ], width=6, lg=3),
@@ -102,8 +98,6 @@ def create_participant_detail_view(march_id: int, user_id: int) -> html.Div:
     try:
         # Get participant data
         summary_data = get_participant_march_summary(march_id, user_id)
-        hr_zones_data = get_participant_hr_zones(march_id, user_id)
-        movement_data = get_participant_movement_speeds(march_id, user_id)
         timeseries_data = get_march_timeseries_data(march_id, user_id)
 
         if not summary_data:
@@ -124,8 +118,6 @@ def create_participant_detail_view(march_id: int, user_id: int) -> html.Div:
 
         # Create charts
         hr_speed_chart = create_hr_speed_timeline(timeseries_data, "March Performance")
-        hr_zones_chart = create_hr_zones_chart(hr_zones_data)
-        movement_chart = create_movement_speeds_chart(movement_data)
         steps_chart = create_cumulative_steps_chart(timeseries_data)
         pace_chart = create_pace_consistency_chart(timeseries_data)
 
@@ -165,46 +157,7 @@ def create_participant_detail_view(march_id: int, user_id: int) -> html.Div:
                 ], width=12)
             ], className="mb-4"),
 
-            # Analysis Charts Row 1
-            dbc.Row([
-                # HR Zones
-                dbc.Col([
-                    dbc.Card([
-                        dbc.CardHeader([
-                            html.H6([
-                                html.I(className="fas fa-heartbeat me-2"),
-                                "Heart Rate Zones"
-                            ], className="mb-0 text-professional")
-                        ]),
-                        dbc.CardBody([
-                            dcc.Graph(
-                                figure=hr_zones_chart,
-                                config={'displayModeBar': False}
-                            )
-                        ])
-                    ], className="chart-container")
-                ], width=12, lg=6),
-
-                # Movement Speeds
-                dbc.Col([
-                    dbc.Card([
-                        dbc.CardHeader([
-                            html.H6([
-                                html.I(className="fas fa-running me-2"),
-                                "Movement Categories"
-                            ], className="mb-0 text-professional")
-                        ]),
-                        dbc.CardBody([
-                            dcc.Graph(
-                                figure=movement_chart,
-                                config={'displayModeBar': False}
-                            )
-                        ])
-                    ], className="chart-container")
-                ], width=12, lg=6)
-            ], className="mb-4"),
-
-            # Analysis Charts Row 2
+            # Analysis Charts
             dbc.Row([
                 # Cumulative Steps
                 dbc.Col([
@@ -265,7 +218,7 @@ def create_participant_selector_modal(participants_data: pd.DataFrame) -> dbc.Mo
     else:
         options = [
             {
-                'label': f"{row['username']} - {row['finish_time_minutes']}min ({row['effort_score']:.1f} effort)",
+                'label': f"{row['username']} - {row['finish_time_minutes']}min (Avg HR: {row['avg_hr']} bpm)",
                 'value': row['user_id']
             }
             for _, row in participants_data.iterrows()
