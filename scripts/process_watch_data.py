@@ -525,14 +525,37 @@ class WatchDataProcessor:
         if not gps_df.empty:
             gps_df = self.calculate_speed_from_gps(gps_df)
 
+            # Determine which columns to merge from GPS
+            gps_cols_to_merge = ['timestamp']
+
+            # Only add GPS speed if CSV doesn't already have it
+            if 'speed_kmh' not in merged.columns:
+                gps_cols_to_merge.append('speed_kmh')
+            else:
+                # Rename GPS speed to avoid conflict
+                gps_df = gps_df.rename(columns={'speed_kmh': 'gps_speed_kmh'})
+                gps_cols_to_merge.append('gps_speed_kmh')
+
+            # Only add cumulative distance if CSV doesn't have it
+            if 'cumulative_distance_km' not in merged.columns:
+                gps_cols_to_merge.append('cumulative_distance_km')
+
             # Merge on timestamp (nearest match within 5 seconds)
             merged = pd.merge_asof(
                 merged.sort_values('timestamp'),
-                gps_df[['timestamp', 'speed_kmh', 'cumulative_distance_km']].sort_values('timestamp'),
+                gps_df[gps_cols_to_merge].sort_values('timestamp'),
                 on='timestamp',
                 direction='nearest',
                 tolerance=pd.Timedelta('5s')
             )
+
+            # If we renamed GPS speed, optionally use it to fill missing CSV speeds
+            if 'gps_speed_kmh' in merged.columns:
+                if merged['speed_kmh'].isna().any():
+                    # Fill missing CSV speeds with GPS speeds
+                    merged['speed_kmh'] = merged['speed_kmh'].fillna(merged['gps_speed_kmh'])
+                # Drop the temporary GPS speed column
+                merged = merged.drop(columns=['gps_speed_kmh'])
 
         return merged
 
@@ -764,25 +787,80 @@ class WatchDataProcessor:
 
         results = []
         for participant_id, activities in participant_files.items():
-            # Process each activity for this participant
-            for activity_files in activities:
-                activity_num = activity_files.get('activity_num', 1)
-                file_id = activity_files.get('file_id', participant_id)
-
-                logger.info(f"Processing {participant_id} - Activity {activity_num} ({file_id})")
+            # If participant has multiple activities, merge them (same march with gaps)
+            if len(activities) > 1:
+                logger.info(f"Processing {participant_id} - Merging {len(activities)} activities into one")
+                try:
+                    result = self.process_participant_multiple_activities(participant_id, activities)
+                    if result:
+                        results.append(result)
+                except Exception as e:
+                    logger.error(f"Error processing {participant_id} multiple activities: {e}")
+            else:
+                # Single activity - process normally
+                activity_files = activities[0]
+                logger.info(f"Processing {participant_id} - Single activity")
 
                 try:
                     result = self.process_participant(participant_id, activity_files)
                     if result:
-                        # Add activity metadata to result
-                        result['activity_num'] = activity_num
-                        result['file_id'] = file_id
                         results.append(result)
                 except Exception as e:
-                    logger.error(f"Error processing {participant_id} activity {activity_num}: {e}")
+                    logger.error(f"Error processing {participant_id}: {e}")
 
-        logger.info(f"Successfully processed {len(results)} activities")
+        logger.info(f"Successfully processed {len(results)} participants")
         return results
+
+    def process_participant_multiple_activities(self, participant_id: str, activities: list[dict]) -> dict:
+        """
+        Process multiple activities for a participant and merge them into one timeline
+
+        Multiple activities represent the same march with gaps (watch stopped/restarted)
+        """
+        all_csv_dfs = []
+        all_gps_dfs = []
+        all_summaries = []
+
+        # Parse all activity files
+        for activity_files in activities:
+            activity_num = activity_files.get('activity_num', 1)
+            logger.info(f"  Parsing {participant_id} activity {activity_num}")
+
+            # Parse CSV
+            csv_df, csv_summary = self.parse_csv_file(activity_files['csv'])
+            if not csv_df.empty:
+                all_csv_dfs.append(csv_df)
+            if csv_summary:
+                all_summaries.append(csv_summary)
+
+            # Parse GPX if available
+            if 'gpx' in activity_files:
+                gps_df = self.parse_gpx_file(activity_files['gpx'])
+                if not gps_df.empty:
+                    all_gps_dfs.append(gps_df)
+
+        # Merge all CSV dataframes
+        merged_csv = pd.concat(all_csv_dfs, ignore_index=True).sort_values('timestamp') if all_csv_dfs else pd.DataFrame()
+
+        # Merge all GPS dataframes
+        merged_gps = pd.concat(all_gps_dfs, ignore_index=True).sort_values('timestamp') if all_gps_dfs else pd.DataFrame()
+
+        # Use first summary for metadata (or merge summaries if needed)
+        merged_summary = all_summaries[0] if all_summaries else {}
+
+        # Process the merged data
+        if not merged_csv.empty:
+            logger.info(f"Processing merged data for {participant_id}: {len(merged_csv)} time-series records")
+            result = self._process_from_timeseries(participant_id, merged_csv, merged_gps, {})
+            if merged_summary:
+                result['csv_summary'] = merged_summary
+            return result
+        elif merged_summary:
+            logger.info(f"Processing merged summary for {participant_id}")
+            return self._process_from_summary(participant_id, merged_summary, merged_gps, {})
+        else:
+            logger.warning(f"No valid merged data for {participant_id}")
+            return {}
 
     def save_to_csv(self, results: list[dict], output_dir: Path):
         """Save processed data to CSV files for database import"""
