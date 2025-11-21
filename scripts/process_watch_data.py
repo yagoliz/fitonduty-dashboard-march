@@ -182,12 +182,16 @@ class WatchDataProcessor:
             start_time = pd.to_datetime(datetime_str, format='%d.%m.%Y %H:%M:%S', errors='coerce')
 
             if pd.isna(start_time):
-                # Try alternative formats
-                start_time = pd.to_datetime(datetime_str, errors='coerce')
+                # Try alternative formats with dayfirst=True
+                start_time = pd.to_datetime(datetime_str, dayfirst=True, errors='coerce')
 
             if pd.isna(start_time):
                 logger.error(f"Could not parse date/time from {csv_file.name}: '{datetime_str}'")
                 return pd.DataFrame(), {}
+
+            # Make timezone-naive (remove timezone if present)
+            if start_time.tz is not None:
+                start_time = start_time.tz_localize(None)
 
         except Exception as e:
             logger.error(f"Error parsing date/time from {csv_file.name}: {e}")
@@ -293,8 +297,13 @@ class WatchDataProcessor:
             for track in gpx.tracks:
                 for segment in track.segments:
                     for point in segment.points:
+                        # Convert timestamp to timezone-naive for consistency
+                        timestamp = point.time
+                        if timestamp is not None and hasattr(timestamp, 'tzinfo') and timestamp.tzinfo is not None:
+                            timestamp = timestamp.replace(tzinfo=None)
+
                         points.append({
-                            'timestamp': point.time,
+                            'timestamp': timestamp,
                             'latitude': point.latitude,
                             'longitude': point.longitude,
                             'elevation': point.elevation
