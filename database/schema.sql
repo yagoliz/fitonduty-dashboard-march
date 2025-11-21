@@ -128,6 +128,20 @@ CREATE TABLE IF NOT EXISTS march_timeseries_data (
     UNIQUE (march_id, user_id, timestamp_minutes)
 );
 
+-- March GPS Positions (GPS track data from watch exports)
+CREATE TABLE IF NOT EXISTS march_gps_positions (
+    id SERIAL PRIMARY KEY,
+    march_id INTEGER REFERENCES march_events(id) ON DELETE CASCADE,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    timestamp_minutes NUMERIC(8,2) NOT NULL, -- Minutes from march start (can be fractional)
+    latitude NUMERIC(10,7) NOT NULL, -- Latitude in decimal degrees
+    longitude NUMERIC(10,7) NOT NULL, -- Longitude in decimal degrees
+    elevation NUMERIC(6,2), -- Elevation in meters
+    speed_kmh NUMERIC(4,2), -- Instantaneous speed from GPS
+    bearing NUMERIC(5,2), -- Direction of travel in degrees (0-360)
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Indexes for performance
 CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
 CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
@@ -138,6 +152,8 @@ CREATE INDEX IF NOT EXISTS idx_march_participants_user ON march_participants(use
 CREATE INDEX IF NOT EXISTS idx_march_health_metrics_march_user ON march_health_metrics(march_id, user_id);
 CREATE INDEX IF NOT EXISTS idx_march_timeseries_march_user ON march_timeseries_data(march_id, user_id);
 CREATE INDEX IF NOT EXISTS idx_march_timeseries_timestamp ON march_timeseries_data(march_id, user_id, timestamp_minutes);
+CREATE INDEX IF NOT EXISTS idx_march_gps_march_user ON march_gps_positions(march_id, user_id);
+CREATE INDEX IF NOT EXISTS idx_march_gps_timestamp ON march_gps_positions(march_id, user_id, timestamp_minutes);
 
 -- Comments for documentation
 COMMENT ON TABLE users IS 'User accounts with role-based access';
@@ -158,3 +174,9 @@ COMMENT ON TABLE march_timeseries_data IS 'Time-series physiological data during
 COMMENT ON COLUMN march_timeseries_data.timestamp_minutes IS 'Minutes elapsed from march start (0 = start time)';
 COMMENT ON COLUMN march_timeseries_data.step_rate IS 'Steps per minute at this timestamp';
 COMMENT ON COLUMN march_timeseries_data.estimated_speed_kmh IS 'Estimated movement speed from pace algorithms';
+
+COMMENT ON TABLE march_gps_positions IS 'GPS track data from watch exports for route visualization';
+COMMENT ON COLUMN march_gps_positions.timestamp_minutes IS 'Minutes elapsed from march start (fractional for high-frequency GPS data)';
+COMMENT ON COLUMN march_gps_positions.latitude IS 'Latitude coordinate in decimal degrees (WGS84)';
+COMMENT ON COLUMN march_gps_positions.longitude IS 'Longitude coordinate in decimal degrees (WGS84)';
+COMMENT ON COLUMN march_gps_positions.bearing IS 'Direction of travel in degrees where 0/360=North, 90=East, 180=South, 270=West';

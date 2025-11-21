@@ -153,6 +153,69 @@ def seed_basic_data(conn):
     print("✓ Basic data seeded")
 
 
+def generate_gps_track(user_id, duration_minutes, distance_km):
+    """Generate realistic GPS track data for a participant"""
+
+    # Starting position (example location - adjust to your needs)
+    # These coordinates are for a forest area, adjust to your actual march location
+    base_lat = 40.7128 + (user_id % 4) * 0.001  # Slightly different start for each participant
+    base_lon = -74.0060 + (user_id % 4) * 0.001
+
+    gps_data = []
+
+    # Set random seed for consistent routes per user
+    random.seed(user_id * 100)
+
+    # Calculate points (every 30 seconds for smoother routes)
+    num_points = duration_minutes * 2  # 2 points per minute
+
+    # Route parameters
+    bearing = random.uniform(0, 360)  # Initial direction
+    elevation = 100 + random.uniform(-10, 10)  # Starting elevation
+
+    for i in range(num_points):
+        progress = i / num_points
+
+        # Time in minutes (fractional)
+        timestamp_minutes = (i * 0.5)  # 0.5 minutes = 30 seconds
+
+        # Calculate movement
+        # Distance per point (km)
+        point_distance = (distance_km / num_points) * (1.0 + random.uniform(-0.1, 0.1))
+
+        # Bearing changes (simulate turns and terrain following)
+        bearing_change = random.uniform(-15, 15) + 5 * math.sin(progress * 8 * math.pi)
+        bearing = (bearing + bearing_change) % 360
+
+        # Convert bearing and distance to lat/lon change
+        # Approximate: 1 degree lat ≈ 111 km, 1 degree lon ≈ 111 km * cos(lat)
+        lat_change = point_distance * math.cos(math.radians(bearing)) / 111.0
+        lon_change = point_distance * math.sin(math.radians(bearing)) / (111.0 * math.cos(math.radians(base_lat)))
+
+        base_lat += lat_change
+        base_lon += lon_change
+
+        # Elevation changes (simulate terrain)
+        elevation_change = random.uniform(-2, 2) + 3 * math.sin(progress * 6 * math.pi)
+        elevation += elevation_change
+        elevation = max(50, min(300, elevation))  # Keep elevation reasonable
+
+        # Calculate speed (km/h) from distance and time
+        speed_kmh = (point_distance / (0.5 / 60))  # distance / time_in_hours
+        speed_kmh = max(0.5, min(8.0, speed_kmh))  # Reasonable marching speed
+
+        gps_data.append({
+            'timestamp_minutes': round(timestamp_minutes, 2),
+            'latitude': round(base_lat, 7),
+            'longitude': round(base_lon, 7),
+            'elevation': round(elevation, 2),
+            'speed_kmh': round(speed_kmh, 2),
+            'bearing': round(bearing, 2)
+        })
+
+    return gps_data
+
+
 def generate_march_timeseries(user_id, duration_minutes, distance_km):
     """Generate realistic time-series data for a participant during march"""
 
@@ -392,14 +455,26 @@ def seed_march_data(conn):
         for data_point in timeseries_data:
             conn.execute(
                 text("""
-                INSERT INTO march_timeseries_data 
+                INSERT INTO march_timeseries_data
                 (march_id, user_id, timestamp_minutes, heart_rate, step_rate, estimated_speed_kmh, cumulative_steps, cumulative_distance_km)
                 VALUES (:march_id, :user_id, :timestamp_minutes, :heart_rate, :step_rate, :estimated_speed_kmh, :cumulative_steps, :cumulative_distance_km)
             """),
                 {"march_id": march_id, "user_id": user_id, **data_point},
             )
 
-        print(f"✓ Generated data for participant{user_id - 1} ({duration_minutes} min march)")
+        # Generate and insert GPS track data
+        gps_track = generate_gps_track(user_id, duration_minutes, distance_km)
+        for gps_point in gps_track:
+            conn.execute(
+                text("""
+                INSERT INTO march_gps_positions
+                (march_id, user_id, timestamp_minutes, latitude, longitude, elevation, speed_kmh, bearing)
+                VALUES (:march_id, :user_id, :timestamp_minutes, :latitude, :longitude, :elevation, :speed_kmh, :bearing)
+            """),
+                {"march_id": march_id, "user_id": user_id, **gps_point},
+            )
+
+        print(f"✓ Generated data for participant{user_id - 1} ({duration_minutes} min march, {len(gps_track)} GPS points)")
 
     print("✓ March performance data seeded with time-series")
 
@@ -427,6 +502,7 @@ def main():
         print("  - One completed march: 'Training March Alpha' (8.2km, ~2.5 hours)")
         print("  - 4 participants with different performance levels")
         print("  - Time-series HR and speed data every 5 minutes")
+        print("  - GPS track data with lat/lon/elevation (every 30 seconds)")
         print("  - Summary metrics and HR zone analysis")
         print("\nTest login credentials:")
         print("  Admin: admin / test123")

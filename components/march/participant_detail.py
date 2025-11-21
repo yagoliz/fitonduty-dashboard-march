@@ -7,6 +7,7 @@ import pandas as pd
 from dash import dcc, html
 
 from utils.database import (
+    get_march_gps_track,
     get_march_timeseries_data,
     get_participant_march_summary,
 )
@@ -15,6 +16,10 @@ from utils.visualization.march_charts import (
     create_hr_speed_timeline,
     create_pace_consistency_chart,
     create_performance_summary_card_data,
+)
+from utils.visualization.march_route_map import (
+    create_elevation_profile,
+    create_march_route_map,
 )
 
 
@@ -121,6 +126,16 @@ def create_participant_detail_view(march_id: int, user_id: int) -> html.Div:
         steps_chart = create_cumulative_steps_chart(timeseries_data)
         pace_chart = create_pace_consistency_chart(timeseries_data)
 
+        # Get GPS track data
+        gps_data = get_march_gps_track(march_id, user_id)
+
+        # Create map and elevation profile if GPS data available
+        route_map = None
+        elevation_chart = None
+        if not gps_data.empty:
+            route_map = create_march_route_map(gps_data, participant_name)
+            elevation_chart = create_elevation_profile(gps_data, participant_name)
+
         return html.Div([
             # Header
             dbc.Row([
@@ -136,6 +151,49 @@ def create_participant_detail_view(march_id: int, user_id: int) -> html.Div:
 
             # Performance Summary Cards
             summary_cards,
+
+            # GPS Route Map (if available)
+            dbc.Row([
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardHeader([
+                            html.H5([
+                                html.I(className="fas fa-map-marked-alt me-2"),
+                                "Route Map"
+                            ], className="mb-0 text-professional")
+                        ]),
+                        dbc.CardBody([
+                            dcc.Graph(
+                                figure=route_map,
+                                config={'displayModeBar': True, 'displaylogo': False}
+                            ) if route_map else html.Div([
+                                html.P("No GPS data available for this march",
+                                      className="text-muted text-center py-4")
+                            ])
+                        ])
+                    ], className="chart-container")
+                ], width=12)
+            ], className="mb-4") if route_map or not gps_data.empty else html.Div(),
+
+            # Elevation Profile (if available)
+            dbc.Row([
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardHeader([
+                            html.H6([
+                                html.I(className="fas fa-mountain me-2"),
+                                "Elevation Profile"
+                            ], className="mb-0 text-professional")
+                        ]),
+                        dbc.CardBody([
+                            dcc.Graph(
+                                figure=elevation_chart,
+                                config={'displayModeBar': False}
+                            )
+                        ])
+                    ], className="chart-container")
+                ], width=12)
+            ], className="mb-4") if elevation_chart else html.Div(),
 
             # Main Timeline Chart
             dbc.Row([

@@ -316,7 +316,7 @@ def get_march_leaderboard(march_id: int, sort_by: str = 'effort_score') -> pd.Da
         sort_by = 'effort_score'
 
     query = f"""
-        SELECT 
+        SELECT
             ROW_NUMBER() OVER (ORDER BY {valid_sort_columns[sort_by]}) as rank,
             u.username,
             mp.completed,
@@ -338,4 +338,50 @@ def get_march_leaderboard(march_id: int, sort_by: str = 'effort_score') -> pd.Da
         return db_manager.execute_query(query, {'march_id': march_id})
     except Exception as e:
         logger.error(f"Error fetching march leaderboard: {e}")
+        return pd.DataFrame()
+
+
+def get_march_gps_track(march_id: int, user_id: int) -> pd.DataFrame:
+    """Get GPS track data for a participant's march route"""
+    query = """
+        SELECT
+            timestamp_minutes,
+            latitude,
+            longitude,
+            elevation,
+            speed_kmh,
+            bearing
+        FROM march_gps_positions
+        WHERE march_id = :march_id AND user_id = :user_id
+        ORDER BY timestamp_minutes
+    """
+
+    try:
+        return db_manager.execute_query(query, {'march_id': march_id, 'user_id': user_id})
+    except Exception as e:
+        logger.error(f"Error fetching GPS track: {e}")
+        return pd.DataFrame()
+
+
+def get_march_all_gps_tracks(march_id: int) -> pd.DataFrame:
+    """Get GPS tracks for all participants in a march"""
+    query = """
+        SELECT
+            mgp.user_id,
+            u.username,
+            mgp.timestamp_minutes,
+            mgp.latitude,
+            mgp.longitude,
+            mgp.elevation,
+            mgp.speed_kmh
+        FROM march_gps_positions mgp
+        JOIN users u ON mgp.user_id = u.id
+        WHERE mgp.march_id = :march_id
+        ORDER BY mgp.user_id, mgp.timestamp_minutes
+    """
+
+    try:
+        return db_manager.execute_query(query, {'march_id': march_id})
+    except Exception as e:
+        logger.error(f"Error fetching all GPS tracks: {e}")
         return pd.DataFrame()
