@@ -465,6 +465,24 @@ h6 { font-size: 1rem; color: var(--text-secondary); }
   max-height: 450px;
 }
 
+.map-container {
+  background: var(--background-primary);
+  border-radius: var(--border-radius-md);
+  box-shadow: var(--shadow-sm);
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+}
+
+.map-container .js-plotly-plot {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.map-container .plotly {
+  width: 100% !important;
+  height: 100% !important;
+}
+
 /* ============================================
    LAYOUT ENHANCEMENTS
    ============================================ */

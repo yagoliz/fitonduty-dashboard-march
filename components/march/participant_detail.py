@@ -165,13 +165,26 @@ def create_participant_detail_view(march_id: int, user_id: int) -> html.Div:
                         dbc.CardBody([
                             dcc.Graph(
                                 figure=route_map,
-                                config={'displayModeBar': True, 'displaylogo': False}
+                                config={
+                                    'displayModeBar': True,
+                                    'displaylogo': False,
+                                    'scrollZoom': True,
+                                    'modeBarButtonsToRemove': ['lasso2d', 'select2d'],
+                                    'toImageButtonOptions': {
+                                        'format': 'png',
+                                        'filename': 'march_route',
+                                        'height': 1200,
+                                        'width': 1600,
+                                        'scale': 2
+                                    }
+                                },
+                                style={'height': '600px'}
                             ) if route_map else html.Div([
                                 html.P("No GPS data available for this march",
                                       className="text-muted text-center py-4")
                             ])
-                        ])
-                    ], className="chart-container")
+                        ], style={'padding': '0'})
+                    ], className="map-container")
                 ], width=12)
             ], className="mb-4") if route_map or not gps_data.empty else html.Div(),
 

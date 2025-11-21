@@ -60,11 +60,7 @@ def create_march_route_map(gps_data: pd.DataFrame, participant_name: str = "Part
             size=6,
             color=colors,
             colorscale='Viridis',
-            showscale=True,
-            colorbar=dict(
-                title=colorbar_title,
-                x=1.02
-            ),
+            showscale=False,
             cmin=colors.min() if len(colors) > 0 else 0,
             cmax=colors.max() if len(colors) > 0 else 1
         ),
@@ -74,7 +70,8 @@ def create_march_route_map(gps_data: pd.DataFrame, participant_name: str = "Part
         ),
         hovertext=hover_text,
         hoverinfo='text',
-        name='Route'
+        name='Route',
+        showlegend=False
     ))
 
     # Add start marker
@@ -90,7 +87,7 @@ def create_march_route_map(gps_data: pd.DataFrame, participant_name: str = "Part
         text='Start',
         hoverinfo='text',
         name='Start',
-        showlegend=True
+        showlegend=False
     ))
 
     # Add finish marker
@@ -106,7 +103,7 @@ def create_march_route_map(gps_data: pd.DataFrame, participant_name: str = "Part
         text='Finish',
         hoverinfo='text',
         name='Finish',
-        showlegend=True
+        showlegend=False
     ))
 
     # Calculate center point
@@ -132,11 +129,6 @@ def create_march_route_map(gps_data: pd.DataFrame, participant_name: str = "Part
 
     # Update layout
     fig.update_layout(
-        title=dict(
-            text=f"March Route - {participant_name}",
-            x=0.5,
-            xanchor='center'
-        ),
         mapbox=dict(
             style='open-street-map',
             center=dict(lat=center_lat, lon=center_lon),
@@ -144,14 +136,7 @@ def create_march_route_map(gps_data: pd.DataFrame, participant_name: str = "Part
         ),
         margin=dict(l=0, r=0, t=40, b=0),
         height=600,
-        showlegend=True,
-        legend=dict(
-            x=0.01,
-            y=0.99,
-            bgcolor='rgba(255, 255, 255, 0.8)',
-            bordercolor='gray',
-            borderwidth=1
-        )
+        showlegend=False
     )
 
     return fig
