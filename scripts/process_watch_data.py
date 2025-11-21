@@ -134,28 +134,126 @@ class WatchDataProcessor:
         attempts to handle common formats:
         1. Time-series format: Rows with timestamp, heart rate, steps, etc.
         2. Summary format: Single row with activity summary (Polar/Suunto export)
+        3. Combined format: Summary row + time-series data (with dual headers)
 
         Returns:
             Tuple of (timeseries_df, summary_dict)
         """
         try:
-            # Try to read the CSV file
-            df = pd.read_csv(csv_file)
+            # First, read just the first few rows to detect format
+            first_rows = pd.read_csv(csv_file, nrows=3)
 
             # Check if this is a summary format CSV (Polar/Suunto style)
             summary_cols = ['Name', 'Sport', 'Date', 'Start time', 'Duration',
                           'Average heart rate (bpm)', 'Average cadence (rpm)']
 
-            if all(col in df.columns for col in summary_cols[:4]):
-                logger.info(f"Detected summary format CSV: {csv_file.name}")
-                return self._parse_summary_csv(df, csv_file)
+            if all(col in first_rows.columns for col in summary_cols[:4]):
+                # Detected summary format - check if it's combined or summary-only
+                # Check if row 2 (index 1) looks like time-series headers
+                if len(first_rows) >= 2:
+                    second_row = first_rows.iloc[1]
+                    # Common time-series column indicators
+                    timeseries_indicators = ['Sample rate', 'Time', 'HR (bpm)', 'Speed (km/h)']
+
+                    if any(str(val) in timeseries_indicators for val in second_row.values):
+                        logger.info(f"Detected combined format CSV (summary + timeseries): {csv_file.name}")
+                        return self._parse_combined_csv(csv_file)
+
+                logger.info(f"Detected summary-only format CSV: {csv_file.name}")
+                return self._parse_summary_csv(first_rows, csv_file)
 
             # Otherwise, try to parse as time-series format
+            df = pd.read_csv(csv_file)
             return self._parse_timeseries_csv(df, csv_file)
 
         except Exception as e:
             logger.error(f"Error parsing CSV file {csv_file}: {e}")
             return pd.DataFrame(), {}
+
+    def _parse_combined_csv(self, csv_file: Path) -> tuple[pd.DataFrame, dict]:
+        """
+        Parse combined format CSV with both summary and time-series data
+
+        Format:
+        Row 1: Summary headers
+        Row 2: Summary data
+        Row 3: Time-series headers
+        Row 4+: Time-series data
+        """
+        try:
+            # Read summary data (first 2 rows)
+            summary_df = pd.read_csv(csv_file, nrows=1)
+
+            # Parse summary data
+            _, summary_dict = self._parse_summary_csv(summary_df, csv_file)
+
+            # Read time-series data (skip first 2 rows, use row 3 as header)
+            timeseries_df = pd.read_csv(csv_file, skiprows=2)
+
+            # Parse time-series data
+            timeseries_clean = self._parse_timeseries_data(timeseries_df, csv_file, summary_dict)
+
+            return timeseries_clean, summary_dict
+
+        except Exception as e:
+            logger.error(f"Error parsing combined CSV file {csv_file}: {e}")
+            return pd.DataFrame(), {}
+
+    def _parse_timeseries_data(self, df: pd.DataFrame, csv_file: Path, summary: dict) -> pd.DataFrame:
+        """
+        Parse time-series data from combined format CSV
+
+        Expected columns: Time, HR (bpm), Speed (km/h), Cadence, etc.
+        """
+        # Common column name mappings for this format
+        column_mapping = {
+            'Time': 'timestamp',
+            'HR (bpm)': 'heart_rate',
+            'Speed (km/h)': 'speed_kmh',
+            'Cadence': 'cadence',
+            'Altitude (m)': 'altitude',
+            'Distances (m)': 'distance_m',
+            'Power (W)': 'power'
+        }
+
+        df_clean = pd.DataFrame()
+
+        # Find and map columns
+        for orig_col, new_col in column_mapping.items():
+            if orig_col in df.columns:
+                if new_col == 'timestamp':
+                    # Parse time and combine with summary start datetime
+                    try:
+                        # Time column contains delta time (elapsed time from start)
+                        # Format: HH:MM:SS or MM:SS
+                        start_datetime = summary.get('start_time')
+                        if start_datetime:
+                            # Parse delta time as timedelta
+                            time_values = pd.to_timedelta(df[orig_col].astype(str), errors='coerce')
+                            # Add delta time to start datetime
+                            df_clean['timestamp'] = pd.to_datetime(start_datetime) + time_values
+                        else:
+                            # Fallback: just parse as timedelta
+                            df_clean['timestamp'] = pd.to_timedelta(df[orig_col].astype(str), errors='coerce')
+                    except Exception as e:
+                        logger.warning(f"Could not parse timestamp from {orig_col}: {e}")
+                        continue
+                else:
+                    df_clean[new_col] = pd.to_numeric(df[orig_col], errors='coerce')
+
+        # Calculate cumulative steps from cadence if available
+        if 'cadence' in df_clean.columns and 'timestamp' in df_clean.columns:
+            # Cadence is steps per minute, integrate over time to get total steps
+            cadence_data = df_clean['cadence'].fillna(0)
+            # Assuming 1-second sampling, steps per second = cadence / 60
+            df_clean['steps'] = (cadence_data / 60).cumsum()
+
+        # Remove rows with invalid data
+        if 'timestamp' in df_clean.columns:
+            df_clean = df_clean.dropna(subset=['timestamp'])
+
+        logger.info(f"Parsed {len(df_clean)} time-series records from combined CSV {csv_file.name}")
+        return df_clean
 
     def _parse_summary_csv(self, df: pd.DataFrame, csv_file: Path) -> tuple[pd.DataFrame, dict]:
         """
@@ -496,14 +594,19 @@ class WatchDataProcessor:
         if 'tcx' in files:
             tcx_data = self.parse_tcx_file(files['tcx'])
 
-        # Handle case where we have summary data but no time-series CSV
-        if csv_df.empty and csv_summary:
+        # Handle combined format (time-series + summary) or time-series only
+        if not csv_df.empty:
+            logger.info(f"Processing with time-series data for {participant_id}")
+            result = self._process_from_timeseries(participant_id, csv_df, gps_df, tcx_data)
+            # If we also have summary data, add it to the result
+            if csv_summary:
+                result['csv_summary'] = csv_summary
+            return result
+
+        # Handle summary-only format
+        if csv_summary:
             logger.info(f"Processing with summary data only for {participant_id}")
             return self._process_from_summary(participant_id, csv_summary, gps_df, tcx_data)
-
-        # Handle case where we have time-series CSV data
-        if not csv_df.empty:
-            return self._process_from_timeseries(participant_id, csv_df, gps_df, tcx_data)
 
         # No valid data
         logger.warning(f"No valid data for participant {participant_id}")
