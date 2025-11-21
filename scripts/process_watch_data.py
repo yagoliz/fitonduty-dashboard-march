@@ -59,87 +59,225 @@ class WatchDataProcessor:
         if not self.data_dir.exists():
             raise FileNotFoundError(f"Data directory not found: {data_dir}")
 
-    def find_participant_files(self) -> dict[str, dict[str, Path]]:
+    def find_participant_files(self) -> dict[str, list[dict[str, Path]]]:
         """
         Find all participant data files in the data directory
 
+        Handles multiple activities per participant (e.g., SM001_1.CSV, SM001_2.CSV)
+
         Returns:
-            Dict mapping participant IDs to their CSV/GPX/TCX files
+            Dict mapping participant IDs to list of activity file sets
+            Example: {'SM001': [{'csv': Path(...), 'gpx': Path(...)}, {...}]}
         """
+        import re
+
         participants = {}
 
         # Find all CSV files
         csv_files = list(self.data_dir.glob("*.CSV")) + list(self.data_dir.glob("*.csv"))
 
         for csv_file in csv_files:
-            # Extract participant ID from filename (e.g., SM001.CSV -> SM001)
-            participant_id = csv_file.stem
+            # Extract participant ID and activity number from filename
+            # Patterns: SM001.CSV, SM001_1.CSV, SM001_2.CSV, etc.
+            stem = csv_file.stem
+
+            # Try to match pattern: PARTICIPANT_ACTIVITYNUM or just PARTICIPANT
+            match = re.match(r'^([A-Za-z0-9]+)(?:_(\d+))?$', stem)
+
+            if match:
+                participant_id = match.group(1)
+                activity_num = int(match.group(2)) if match.group(2) else 1
+            else:
+                # Fallback: use entire stem as participant ID
+                participant_id = stem
+                activity_num = 1
 
             if participant_id not in participants:
-                participants[participant_id] = {}
+                participants[participant_id] = []
 
-            participants[participant_id]['csv'] = csv_file
+            # Create activity file set
+            activity_files = {
+                'csv': csv_file,
+                'activity_num': activity_num,
+                'file_id': stem  # Original filename stem for identification
+            }
 
             # Look for corresponding GPX and TCX files
             for ext in ['GPX', 'gpx']:
                 gpx_file = csv_file.with_suffix(f'.{ext}')
                 if gpx_file.exists():
-                    participants[participant_id]['gpx'] = gpx_file
+                    activity_files['gpx'] = gpx_file
                     break
 
             for ext in ['TCX', 'tcx']:
                 tcx_file = csv_file.with_suffix(f'.{ext}')
                 if tcx_file.exists():
-                    participants[participant_id]['tcx'] = tcx_file
+                    activity_files['tcx'] = tcx_file
                     break
 
-        logger.info(f"Found {len(participants)} participants with data files")
+            participants[participant_id].append(activity_files)
+
+        # Sort activities by activity number for each participant
+        for participant_id in participants:
+            participants[participant_id].sort(key=lambda x: x['activity_num'])
+
+        total_activities = sum(len(activities) for activities in participants.values())
+        logger.info(f"Found {len(participants)} participants with {total_activities} total activities")
+
         return participants
 
-    def parse_csv_file(self, csv_file: Path) -> pd.DataFrame:
+    def parse_csv_file(self, csv_file: Path) -> tuple[pd.DataFrame, dict]:
         """
         Parse CSV file containing heart rate and sensor data
 
         Different watch manufacturers use different CSV formats. This function
-        attempts to handle common formats.
+        attempts to handle common formats:
+        1. Time-series format: Rows with timestamp, heart rate, steps, etc.
+        2. Summary format: Single row with activity summary (Polar/Suunto export)
+
+        Returns:
+            Tuple of (timeseries_df, summary_dict)
         """
         try:
             # Try to read the CSV file
             df = pd.read_csv(csv_file)
 
-            # Common column name variations
-            time_cols = ['Time', 'time', 'Timestamp', 'timestamp', 'DateTime', 'datetime']
-            hr_cols = ['Heart Rate', 'HR', 'hr', 'HeartRate', 'heart_rate', 'BPM', 'bpm']
-            steps_cols = ['Steps', 'steps', 'Step Count', 'step_count']
+            # Check if this is a summary format CSV (Polar/Suunto style)
+            summary_cols = ['Name', 'Sport', 'Date', 'Start time', 'Duration',
+                          'Average heart rate (bpm)', 'Average cadence (rpm)']
 
-            # Find the actual column names
-            time_col = next((col for col in time_cols if col in df.columns), None)
-            hr_col = next((col for col in hr_cols if col in df.columns), None)
-            steps_col = next((col for col in steps_cols if col in df.columns), None)
+            if all(col in df.columns for col in summary_cols[:4]):
+                logger.info(f"Detected summary format CSV: {csv_file.name}")
+                return self._parse_summary_csv(df, csv_file)
 
-            if not time_col:
-                logger.warning(f"No time column found in {csv_file}. Available columns: {df.columns.tolist()}")
-                return pd.DataFrame()
-
-            # Standardize column names
-            df_clean = pd.DataFrame()
-            df_clean['timestamp'] = pd.to_datetime(df[time_col])
-
-            if hr_col:
-                df_clean['heart_rate'] = pd.to_numeric(df[hr_col], errors='coerce')
-
-            if steps_col:
-                df_clean['steps'] = pd.to_numeric(df[steps_col], errors='coerce')
-
-            # Remove rows with invalid data
-            df_clean = df_clean.dropna(subset=['timestamp'])
-
-            logger.info(f"Parsed {len(df_clean)} records from {csv_file.name}")
-            return df_clean
+            # Otherwise, try to parse as time-series format
+            return self._parse_timeseries_csv(df, csv_file)
 
         except Exception as e:
             logger.error(f"Error parsing CSV file {csv_file}: {e}")
-            return pd.DataFrame()
+            return pd.DataFrame(), {}
+
+    def _parse_summary_csv(self, df: pd.DataFrame, csv_file: Path) -> tuple[pd.DataFrame, dict]:
+        """
+        Parse summary format CSV (one row per activity)
+
+        Expected columns:
+        - Name, Sport, Date, Start time, Duration
+        - Average heart rate (bpm), Max heart rate, etc.
+        - Average cadence (rpm) - used to estimate steps
+        - Total distance (km), Average speed (km/h), etc.
+        """
+        if len(df) == 0:
+            logger.warning(f"Empty CSV file: {csv_file.name}")
+            return pd.DataFrame(), {}
+
+        # Take first row (should only be one activity per file)
+        row = df.iloc[0]
+
+        # Parse date and time
+        try:
+            date_str = row.get('Date', '')
+            time_str = row.get('Start time', '')
+            datetime_str = f"{date_str} {time_str}"
+            start_time = pd.to_datetime(datetime_str, format='%d.%m.%Y %H:%M:%S', errors='coerce')
+
+            if pd.isna(start_time):
+                # Try alternative formats
+                start_time = pd.to_datetime(datetime_str, errors='coerce')
+
+            if pd.isna(start_time):
+                logger.error(f"Could not parse date/time from {csv_file.name}: '{datetime_str}'")
+                return pd.DataFrame(), {}
+
+        except Exception as e:
+            logger.error(f"Error parsing date/time from {csv_file.name}: {e}")
+            return pd.DataFrame(), {}
+
+        # Parse duration (format: HH:MM:SS or HH:MM:SS.mmm)
+        duration_str = row.get('Duration', '00:00:00')
+        try:
+            # Handle different duration formats
+            duration_parts = duration_str.split(':')
+            hours = int(duration_parts[0])
+            minutes = int(duration_parts[1])
+            seconds = float(duration_parts[2]) if len(duration_parts) > 2 else 0
+            duration_minutes = hours * 60 + minutes + seconds / 60
+        except Exception as e:
+            logger.warning(f"Could not parse duration '{duration_str}': {e}")
+            duration_minutes = 0
+
+        # Extract metrics
+        avg_hr = pd.to_numeric(row.get('Average heart rate (bpm)', np.nan), errors='coerce')
+        max_hr = pd.to_numeric(row.get('Max heart rate', np.nan), errors='coerce')
+        avg_cadence = pd.to_numeric(row.get('Average cadence (rpm)', np.nan), errors='coerce')
+        avg_speed = pd.to_numeric(row.get('Average speed (km/h)', np.nan), errors='coerce')
+        max_speed = pd.to_numeric(row.get('Max speed (km/h)', np.nan), errors='coerce')
+        total_distance = pd.to_numeric(row.get('Total distance (km)', np.nan), errors='coerce')
+        calories = pd.to_numeric(row.get('Calories', np.nan), errors='coerce')
+
+        # Estimate steps from cadence
+        # Average cadence (rpm) in running context = steps per minute
+        # Total steps = average cadence × duration in minutes
+        estimated_steps = None
+        if not pd.isna(avg_cadence) and duration_minutes > 0:
+            estimated_steps = int(avg_cadence * duration_minutes)
+            logger.info(f"Estimated {estimated_steps} steps from cadence {avg_cadence} rpm over {duration_minutes:.1f} minutes")
+
+        # Create summary dictionary
+        summary = {
+            'start_time': start_time,
+            'duration_minutes': duration_minutes,
+            'avg_hr': int(avg_hr) if not pd.isna(avg_hr) else None,
+            'max_hr': int(max_hr) if not pd.isna(max_hr) else None,
+            'avg_cadence': avg_cadence if not pd.isna(avg_cadence) else None,
+            'estimated_steps': estimated_steps,
+            'avg_speed_kmh': avg_speed if not pd.isna(avg_speed) else None,
+            'max_speed_kmh': max_speed if not pd.isna(max_speed) else None,
+            'total_distance_km': total_distance if not pd.isna(total_distance) else None,
+            'calories': int(calories) if not pd.isna(calories) else None,
+            'sport': row.get('Sport', 'Unknown'),
+            'name': row.get('Name', 'Unknown')
+        }
+
+        logger.info(f"Parsed summary data from {csv_file.name}: {duration_minutes:.1f} min, "
+                   f"avg HR {summary['avg_hr']}, {estimated_steps} steps (estimated)")
+
+        # Return empty timeseries (will use GPX if available) and summary
+        return pd.DataFrame(), summary
+
+    def _parse_timeseries_csv(self, df: pd.DataFrame, csv_file: Path) -> tuple[pd.DataFrame, dict]:
+        """
+        Parse time-series format CSV (rows with timestamp and sensor data)
+        """
+        # Common column name variations
+        time_cols = ['Time', 'time', 'Timestamp', 'timestamp', 'DateTime', 'datetime']
+        hr_cols = ['Heart Rate', 'HR', 'hr', 'HeartRate', 'heart_rate', 'BPM', 'bpm']
+        steps_cols = ['Steps', 'steps', 'Step Count', 'step_count']
+
+        # Find the actual column names
+        time_col = next((col for col in time_cols if col in df.columns), None)
+        hr_col = next((col for col in hr_cols if col in df.columns), None)
+        steps_col = next((col for col in steps_cols if col in df.columns), None)
+
+        if not time_col:
+            logger.warning(f"No time column found in {csv_file}. Available columns: {df.columns.tolist()}")
+            return pd.DataFrame(), {}
+
+        # Standardize column names
+        df_clean = pd.DataFrame()
+        df_clean['timestamp'] = pd.to_datetime(df[time_col])
+
+        if hr_col:
+            df_clean['heart_rate'] = pd.to_numeric(df[hr_col], errors='coerce')
+
+        if steps_col:
+            df_clean['steps'] = pd.to_numeric(df[steps_col], errors='coerce')
+
+        # Remove rows with invalid data
+        df_clean = df_clean.dropna(subset=['timestamp'])
+
+        logger.info(f"Parsed {len(df_clean)} time-series records from {csv_file.name}")
+        return df_clean, {}
 
     def parse_gpx_file(self, gpx_file: Path) -> pd.DataFrame:
         """Parse GPX file containing GPS track data"""
@@ -337,10 +475,7 @@ class WatchDataProcessor:
         logger.info(f"Processing participant: {participant_id}")
 
         # Parse CSV file (required)
-        csv_df = self.parse_csv_file(files['csv'])
-        if csv_df.empty:
-            logger.warning(f"No valid data for participant {participant_id}")
-            return {}
+        csv_df, csv_summary = self.parse_csv_file(files['csv'])
 
         # Parse GPX file (optional)
         gps_df = pd.DataFrame()
@@ -352,6 +487,22 @@ class WatchDataProcessor:
         if 'tcx' in files:
             tcx_data = self.parse_tcx_file(files['tcx'])
 
+        # Handle case where we have summary data but no time-series CSV
+        if csv_df.empty and csv_summary:
+            logger.info(f"Processing with summary data only for {participant_id}")
+            return self._process_from_summary(participant_id, csv_summary, gps_df, tcx_data)
+
+        # Handle case where we have time-series CSV data
+        if not csv_df.empty:
+            return self._process_from_timeseries(participant_id, csv_df, gps_df, tcx_data)
+
+        # No valid data
+        logger.warning(f"No valid data for participant {participant_id}")
+        return {}
+
+    def _process_from_timeseries(self, participant_id: str, csv_df: pd.DataFrame,
+                                  gps_df: pd.DataFrame, tcx_data: dict) -> dict:
+        """Process participant data from time-series CSV"""
         # Merge data sources
         merged_df = self.merge_data_sources(csv_df, gps_df, tcx_data)
 
@@ -406,20 +557,119 @@ class WatchDataProcessor:
             'tcx_data': tcx_data
         }
 
+    def _process_from_summary(self, participant_id: str, summary: dict,
+                              gps_df: pd.DataFrame, tcx_data: dict) -> dict:
+        """Process participant data from summary CSV (no time-series data)"""
+
+        # Use summary data for aggregate metrics
+        aggregate_metrics = {
+            'avg_hr': summary.get('avg_hr'),
+            'max_hr': summary.get('max_hr'),
+            'total_steps': summary.get('estimated_steps'),
+            'march_duration_minutes': int(summary.get('duration_minutes', 0)),
+            'avg_pace_kmh': summary.get('avg_speed_kmh'),
+            'estimated_distance_km': summary.get('total_distance_km'),
+            'calories': summary.get('calories'),
+            'data_completeness': 1.0  # Summary data is always complete
+        }
+
+        # Try to generate synthetic time-series from GPX data
+        timeseries_df = pd.DataFrame()
+        if not gps_df.empty:
+            timeseries_df = self._generate_timeseries_from_gps(gps_df, summary)
+
+        # Can't calculate HR zones from summary data alone
+        hr_zones = {}
+
+        # Prepare GPS positions data
+        gps_positions = None
+        if not gps_df.empty:
+            gps_df = self.calculate_speed_from_gps(gps_df)
+            gps_positions = gps_df.copy()
+
+            # Calculate time from march start
+            if self.march_start_time:
+                gps_positions['timestamp_minutes'] = (gps_positions['timestamp'] - self.march_start_time).dt.total_seconds() / 60
+            else:
+                start_time = summary.get('start_time', gps_positions['timestamp'].min())
+                gps_positions['timestamp_minutes'] = (gps_positions['timestamp'] - start_time).dt.total_seconds() / 60
+
+        return {
+            'participant_id': participant_id,
+            'march_id': self.march_id,
+            'timeseries': timeseries_df,
+            'aggregate_metrics': aggregate_metrics,
+            'hr_zones': hr_zones,
+            'gps_positions': gps_positions,
+            'tcx_data': tcx_data,
+            'csv_summary': summary
+        }
+
+    def _generate_timeseries_from_gps(self, gps_df: pd.DataFrame, summary: dict) -> pd.DataFrame:
+        """
+        Generate synthetic time-series data from GPX and summary data
+
+        This creates a time-series with:
+        - Speed from GPS
+        - Constant average heart rate (from summary)
+        - Linear step estimation (from summary total steps)
+        """
+        if gps_df.empty:
+            return pd.DataFrame()
+
+        # Calculate speed from GPS
+        gps_with_speed = self.calculate_speed_from_gps(gps_df)
+
+        # Use march start time or GPS start time
+        start_time = summary.get('start_time', gps_with_speed['timestamp'].min())
+
+        # Calculate relative time
+        gps_with_speed['timestamp_minutes'] = (gps_with_speed['timestamp'] - start_time).dt.total_seconds() / 60
+
+        # Resample to 1-minute intervals
+        timeseries_df = gps_with_speed.set_index('timestamp').resample('1min').agg({
+            'speed_kmh': 'mean',
+            'cumulative_distance_km': 'max',
+            'timestamp_minutes': 'mean'
+        }).reset_index()
+
+        # Add constant average heart rate from summary
+        if summary.get('avg_hr'):
+            timeseries_df['heart_rate'] = summary['avg_hr']
+
+        # Add linearly interpolated steps from summary
+        if summary.get('estimated_steps'):
+            duration = summary.get('duration_minutes', len(timeseries_df))
+            total_steps = summary['estimated_steps']
+            # Linear interpolation of steps over duration
+            timeseries_df['steps'] = np.linspace(0, total_steps, len(timeseries_df))
+
+        return timeseries_df
+
     def process_all_participants(self) -> list[dict]:
-        """Process data for all participants"""
+        """Process data for all participants and their activities"""
         participant_files = self.find_participant_files()
 
         results = []
-        for participant_id, files in participant_files.items():
-            try:
-                result = self.process_participant(participant_id, files)
-                if result:
-                    results.append(result)
-            except Exception as e:
-                logger.error(f"Error processing participant {participant_id}: {e}")
+        for participant_id, activities in participant_files.items():
+            # Process each activity for this participant
+            for activity_files in activities:
+                activity_num = activity_files.get('activity_num', 1)
+                file_id = activity_files.get('file_id', participant_id)
 
-        logger.info(f"Successfully processed {len(results)} participants")
+                logger.info(f"Processing {participant_id} - Activity {activity_num} ({file_id})")
+
+                try:
+                    result = self.process_participant(participant_id, activity_files)
+                    if result:
+                        # Add activity metadata to result
+                        result['activity_num'] = activity_num
+                        result['file_id'] = file_id
+                        results.append(result)
+                except Exception as e:
+                    logger.error(f"Error processing {participant_id} activity {activity_num}: {e}")
+
+        logger.info(f"Successfully processed {len(results)} activities")
         return results
 
     def save_to_csv(self, results: list[dict], output_dir: Path):
