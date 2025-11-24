@@ -640,14 +640,14 @@ def main():
             # Load in order: metrics -> hr_zones -> timeseries -> gps
             total_loaded = 0
 
-            # if metrics_df is not None:
-            #     total_loaded += load_march_health_metrics(conn, metrics_df, args.march_id)
+            if metrics_df is not None:
+                total_loaded += load_march_health_metrics(conn, metrics_df, args.march_id)
 
-            # if hr_zones_df is not None:
-            #     total_loaded += load_march_hr_zones(conn, hr_zones_df, args.march_id)
+            if hr_zones_df is not None:
+                total_loaded += load_march_hr_zones(conn, hr_zones_df, args.march_id)
 
-            # if timeseries_df is not None:
-            #     total_loaded += load_march_timeseries_data(conn, timeseries_df, args.march_id)
+            if timeseries_df is not None:
+                total_loaded += load_march_timeseries_data(conn, timeseries_df, args.march_id)
 
             if gps_df is not None:
                 total_loaded += load_march_gps_positions(conn, gps_df, args.march_id)
