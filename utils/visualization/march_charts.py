@@ -24,8 +24,7 @@ def create_hr_speed_timeline(timeseries_data: pd.DataFrame, participant_name: st
     # Create subplot with secondary y-axis
     fig = make_subplots(
         rows=1, cols=1,
-        specs=[[{"secondary_y": True}]],
-        subplot_titles=[f"{participant_name} - Heart Rate & Speed During March"]
+        specs=[[{"secondary_y": True}]]
     )
 
     # Heart Rate trace - using primary color
@@ -90,7 +89,7 @@ def create_hr_speed_timeline(timeseries_data: pd.DataFrame, participant_name: st
             xanchor="right",
             x=1
         ),
-        margin=dict(l=50, r=50, t=80, b=50),
+        margin=dict(l=50, r=50, t=30, b=50),
         plot_bgcolor='rgba(0,0,0,0)',
         paper_bgcolor='rgba(0,0,0,0)',
         font=dict(family="system-ui, -apple-system, sans-serif", size=12, color="#212529")
@@ -152,14 +151,8 @@ def create_hr_zones_chart(hr_zones_data: dict[str, float]) -> go.Figure:
     ])
 
     fig.update_layout(
-        title=dict(
-            text="Heart Rate Zones Distribution",
-            x=0.5,
-            xanchor='center',
-            font=dict(size=14, color="#2c3e50")
-        ),
         height=350,
-        margin=dict(l=20, r=20, t=60, b=20),
+        margin=dict(l=20, r=20, t=20, b=20),
         showlegend=True,
         legend=dict(
             orientation="v",
@@ -226,15 +219,9 @@ def create_movement_speeds_chart(movement_data: dict[str, int]) -> go.Figure:
     ])
 
     fig.update_layout(
-        title=dict(
-            text="Time Spent in Movement Categories",
-            x=0.5,
-            xanchor='center',
-            font=dict(size=14, color="#2c3e50")
-        ),
         xaxis_title="Minutes",
         height=350,
-        margin=dict(l=100, r=50, t=60, b=50),
+        margin=dict(l=100, r=50, t=20, b=50),
         showlegend=False,
         plot_bgcolor='rgba(0,0,0,0)',
         paper_bgcolor='rgba(0,0,0,0)',
@@ -275,16 +262,10 @@ def create_cumulative_steps_chart(timeseries_data: pd.DataFrame) -> go.Figure:
     ])
 
     fig.update_layout(
-        title=dict(
-            text="Cumulative Steps During March",
-            x=0.5,
-            xanchor='center',
-            font=dict(size=14, color="#2c3e50")
-        ),
         xaxis_title="Time (minutes)",
         yaxis_title="Cumulative Steps",
         height=350,
-        margin=dict(l=50, r=50, t=60, b=50),
+        margin=dict(l=50, r=50, t=20, b=50),
         showlegend=False,
         plot_bgcolor='rgba(0,0,0,0)',
         paper_bgcolor='rgba(0,0,0,0)',
@@ -349,16 +330,10 @@ def create_pace_consistency_chart(timeseries_data: pd.DataFrame) -> go.Figure:
     )
 
     fig.update_layout(
-        title=dict(
-            text="Pace Consistency Analysis",
-            x=0.5,
-            xanchor='center',
-            font=dict(size=14, color="#2c3e50")
-        ),
         xaxis_title="Time (minutes)",
         yaxis_title="Speed (km/h)",
         height=350,
-        margin=dict(l=50, r=50, t=60, b=50),
+        margin=dict(l=50, r=50, t=30, b=50),
         legend=dict(
             orientation="h",
             yanchor="bottom",

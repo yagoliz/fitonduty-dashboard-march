@@ -312,7 +312,7 @@ def create_elevation_profile(gps_data: pd.DataFrame, participant_name: str = "Pa
         line=dict(color='rgb(34, 139, 34)', width=2),
         fillcolor='rgba(34, 139, 34, 0.3)',
         name='Elevation',
-        hovertemplate='<b>%{x:.2f}</b><br>Elevation: %{y:.1f} m<extra></extra>'
+        hovertemplate='<b>Time: %{x:.2f} h</b><br>Elevation: %{y:.1f} m<extra></extra>'
     ))
 
     # Calculate elevation statistics
@@ -329,11 +329,6 @@ def create_elevation_profile(gps_data: pd.DataFrame, participant_name: str = "Pa
     )
 
     fig.update_layout(
-        title=dict(
-            text=f"Elevation Profile - {participant_name}",
-            x=0.5,
-            xanchor='center'
-        ),
         xaxis=dict(
             title=x_label,
             showgrid=True,

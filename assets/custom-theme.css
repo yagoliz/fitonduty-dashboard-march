@@ -616,18 +616,55 @@ body {
   .metric-card {
     margin-bottom: var(--spacing-md);
   }
-  
+
   h1 { font-size: 2rem; }
   h2 { font-size: 1.75rem; }
   h3 { font-size: 1.5rem; }
-  
+
   .card {
     margin-bottom: var(--spacing-md);
   }
-  
+
   .btn-professional {
     padding: 0.4rem 1rem;
     font-size: 0.875rem;
+  }
+
+  /* Navbar mobile adjustments */
+  .navbar-simple {
+    padding-left: var(--spacing-sm) !important;
+    padding-right: var(--spacing-sm) !important;
+  }
+
+  .navbar-content {
+    padding: 0 var(--spacing-sm);
+    flex-wrap: nowrap;
+    gap: var(--spacing-sm);
+  }
+
+  .navbar-brand {
+    font-size: 1rem !important;
+    white-space: normal !important;
+    line-height: 1.2;
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* Make navbar icon smaller on mobile */
+  .navbar-brand i {
+    font-size: 0.875rem;
+  }
+
+  /* Ensure dropdown doesn't overflow */
+  .navbar-nav {
+    flex-shrink: 0;
+  }
+
+  .navbar .dropdown-toggle {
+    font-size: 0.875rem;
+    padding-left: 0.5rem !important;
+    padding-right: 0.5rem !important;
+    white-space: nowrap;
   }
 }
 
@@ -635,10 +672,40 @@ body {
   .metric-value {
     font-size: 1.5rem;
   }
-  
+
   .btn {
     font-size: 0.875rem;
     padding: 0.375rem 0.75rem;
+  }
+
+  /* Even more compact navbar for small phones */
+  .navbar-simple {
+    padding-left: 0.375rem !important;
+    padding-right: 0.375rem !important;
+  }
+
+  .navbar-content {
+    padding: 0 0.375rem;
+  }
+
+  .navbar-brand {
+    font-size: 0.875rem !important;
+    margin-right: 0.25rem !important;
+  }
+
+  .navbar-brand i {
+    display: none; /* Hide icon on very small screens to save space */
+  }
+
+  .navbar .dropdown-toggle {
+    font-size: 0.75rem;
+    padding-left: 0.375rem !important;
+    padding-right: 0.375rem !important;
+  }
+
+  /* Make dropdown menu icon smaller */
+  .navbar .dropdown-toggle i {
+    font-size: 0.75rem;
   }
 }
 
