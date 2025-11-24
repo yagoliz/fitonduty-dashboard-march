@@ -9,8 +9,30 @@ from flask_login import login_user, logout_user
 from utils.auth import authenticate_user
 
 
-def create_login_form():
+def create_login_form(debug: bool = False):
     """Create login form component"""
+
+    debug_info = dbc.Alert(
+        [
+            html.H6(
+                [html.I(className="fas fa-info-circle me-2"), "Test Credentials"],
+                className="alert-heading",
+            ),
+            html.P(
+                [
+                    html.Strong("Admin: "),
+                    "admin / test123",
+                    html.Br(),
+                    html.Strong("Participants: "),
+                    "participant1-4 / test123",
+                ],
+                className="mb-0",
+            ),
+        ],
+        color="info",
+        className="small",
+    )
+
     return dbc.Container([
         dbc.Row([
             dbc.Col([
@@ -58,16 +80,7 @@ def create_login_form():
 
                         html.Hr(),
 
-                        dbc.Alert([
-                            html.H6([
-                                html.I(className="fas fa-info-circle me-2"),
-                                "Test Credentials"
-                            ], className="alert-heading"),
-                            html.P([
-                                html.Strong("Admin: "), "admin / test123", html.Br(),
-                                html.Strong("Participants: "), "participant1-4 / test123"
-                            ], className="mb-0")
-                        ], color="info", className="small")
+                        debug_info if debug else html.Div()
                     ], className="py-3")
                 ], className="card-professional shadow-professional", style={"maxWidth": "450px", "maxHeight": "fit-content"})
             ], width=12, className="d-flex justify-content-center")

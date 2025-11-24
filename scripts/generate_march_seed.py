@@ -130,7 +130,7 @@ def interactive_input():
     return structure
 
 
-def create_seed_config(campaign_name, directory_structure, admin_username="admin"):
+def create_seed_config(campaign_name, directory_structure, admin_username="admin_march"):
     """
     Create the seed configuration dictionary
 

@@ -9,6 +9,13 @@ ansible/vaults/*
 !ansible/vaults/vault-example.yml
 .vault_pass
 
+# Data stuff
+.output/*
+
+# Seed Data
+config/seed-data/*
+!config/seed-data/example_*
+
 # Env files
 *.env*
 !.env.example

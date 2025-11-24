@@ -26,9 +26,60 @@
       apt:
         update_cache: yes
         cache_valid_time: 3600
+
+    - name: Install PostgreSQL
+      apt:
+        name:
+          - postgresql
+          - postgresql-contrib
+          - python3-psycopg2  # Required for Ansible PostgreSQL modules
+        state: present
+
+    - name: Ensure PostgreSQL is started and enabled
+      systemd:
+        name: postgresql
+        state: started
+        enabled: yes
+
+    - name: Set PostgreSQL superuser password
+      become_user: postgres
+      postgresql_user:
+        name: postgres
+        password: "{{ vault_postgres_password }}"
+        login_unix_socket: /var/run/postgresql
+      no_log: true
+
+    - name: Configure PostgreSQL to listen on all interfaces
+      lineinfile:
+        path: "/etc/postgresql/{{ postgresql_version | default('16') }}/main/postgresql.conf"
+        regexp: "^#?listen_addresses"
+        line: "listen_addresses = '*'"
+        backup: yes
+      notify: restart postgresql
+
+    - name: Allow connections from all hosts in pg_hba.conf
+      blockinfile:
+        path: "/etc/postgresql/{{ postgresql_version | default('16') }}/main/pg_hba.conf"
+        marker: "# {mark} ANSIBLE MANAGED BLOCK - Allow remote connections"
+        block: |
+          # Allow connections from any host (use specific IPs in production)
+          host    all             all             0.0.0.0/0               scram-sha-256
+          host    all             all             ::/0                    scram-sha-256
+        backup: yes
+      notify: restart postgresql
+
+    - name: Force restart PostgreSQL if configuration changed
+      meta: flush_handlers
+
     - name: Print db_host
       ansible.builtin.debug:
         msg: System {{ server_db_name }} has db_host {{ database_host }}
+
+  handlers:
+    - name: restart postgresql
+      systemd:
+        name: postgresql
+        state: restarted
 
   roles:
     - march_database

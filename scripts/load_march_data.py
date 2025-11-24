@@ -24,6 +24,7 @@ import os
 import sys
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 from sqlalchemy import create_engine, text
 
@@ -136,6 +137,60 @@ def verify_march_exists(engine, march_id):
         return False
 
 
+def to_python_type(value):
+    """
+    Convert NumPy/pandas types to native Python types for database compatibility
+
+    Args:
+        value: Value to convert (may be NumPy type, pandas type, or Python type)
+
+    Returns:
+        Native Python type (int, float, str, None, etc.)
+    """
+    if pd.isna(value):
+        return None
+    if isinstance(value, (np.integer, np.int64, np.int32)):
+        return int(value)
+    if isinstance(value, (np.floating, np.float64, np.float32)):
+        return float(value)
+    if isinstance(value, (np.bool_, bool)):
+        return bool(value)
+    if isinstance(value, (np.str_, str)):
+        return str(value)
+    return value
+
+
+def to_int(value):
+    """Convert value to integer, handling None/NaN"""
+    converted = to_python_type(value)
+    return int(round(converted)) if converted is not None else None
+
+
+def to_decimal(value, decimal_places=2, max_value=None):
+    """
+    Convert value to float with specified decimal places, handling None/NaN
+
+    Args:
+        value: Value to convert
+        decimal_places: Number of decimal places to round to
+        max_value: Optional maximum absolute value to cap at
+    """
+    converted = to_python_type(value)
+    if converted is None:
+        return None
+
+    rounded = round(converted, decimal_places)
+
+    # Cap at max_value if specified
+    if max_value is not None:
+        if rounded > max_value:
+            return max_value
+        if rounded < -max_value:
+            return -max_value
+
+    return rounded
+
+
 def map_participant_ids(df, user_mapping):
     """
     Map participant IDs from CSV to database user IDs
@@ -179,6 +234,10 @@ def load_march_health_metrics(conn, df, march_id):
 
     for _, row in df.iterrows():
         try:
+            # Convert all values to Python native types
+            user_id = int(row['user_id'])
+            finish_time = to_python_type(row.get('march_duration_minutes', 0))
+
             # First, ensure participant is registered for this march
             conn.execute(text("""
                 INSERT INTO march_participants (march_id, user_id, completed, finish_time_minutes)
@@ -187,8 +246,8 @@ def load_march_health_metrics(conn, df, march_id):
                 DO UPDATE SET completed = TRUE, finish_time_minutes = EXCLUDED.finish_time_minutes
             """), {
                 'march_id': march_id,
-                'user_id': row['user_id'],
-                'finish_time': row.get('march_duration_minutes', 0)
+                'user_id': user_id,
+                'finish_time': finish_time
             })
 
             # Insert health metrics
@@ -216,16 +275,16 @@ def load_march_health_metrics(conn, df, march_id):
                     data_completeness = EXCLUDED.data_completeness
             """), {
                 'march_id': march_id,
-                'user_id': row['user_id'],
-                'avg_hr': row.get('avg_hr'),
-                'max_hr': row.get('max_hr'),
-                'total_steps': row.get('total_steps'),
-                'march_duration_minutes': row.get('march_duration_minutes'),
-                'estimated_distance_km': row.get('estimated_distance_km'),
-                'avg_pace_kmh': row.get('avg_pace_kmh'),
-                'effort_score': row.get('effort_score'),
-                'recovery_hr': row.get('recovery_hr'),
-                'data_completeness': row.get('data_completeness', 1.0)
+                'user_id': user_id,
+                'avg_hr': to_python_type(row.get('avg_hr')),
+                'max_hr': to_python_type(row.get('max_hr')),
+                'total_steps': to_python_type(row.get('total_steps')),
+                'march_duration_minutes': to_python_type(row.get('march_duration_minutes')),
+                'estimated_distance_km': to_python_type(row.get('estimated_distance_km')),
+                'avg_pace_kmh': to_python_type(row.get('avg_pace_kmh')),
+                'effort_score': to_python_type(row.get('effort_score')),
+                'recovery_hr': to_python_type(row.get('recovery_hr')),
+                'data_completeness': to_python_type(row.get('data_completeness', 1.0))
             })
 
             loaded_count += 1
@@ -247,18 +306,21 @@ def load_march_hr_zones(conn, df, march_id):
 
     for _, row in df.iterrows():
         try:
+            # Convert user_id to Python int
+            user_id = int(row['user_id'])
+
             # Get the health metric ID for this participant
             result = conn.execute(text("""
                 SELECT id FROM march_health_metrics
                 WHERE march_id = :march_id AND user_id = :user_id
             """), {
                 'march_id': march_id,
-                'user_id': row['user_id']
+                'user_id': user_id
             })
 
             metric_row = result.fetchone()
             if not metric_row:
-                print(f"  ⚠️  No health metric found for user {row['user_id']}, skipping HR zones")
+                print(f"  ⚠️  No health metric found for user {user_id}, skipping HR zones")
                 continue
 
             metric_id = metric_row[0]
@@ -282,11 +344,11 @@ def load_march_hr_zones(conn, df, march_id):
                     beast_mode_percent = EXCLUDED.beast_mode_percent
             """), {
                 'metric_id': metric_id,
-                'very_light_percent': row.get('very_light_percent', 0),
-                'light_percent': row.get('light_percent', 0),
-                'moderate_percent': row.get('moderate_percent', 0),
-                'intense_percent': row.get('intense_percent', 0),
-                'beast_mode_percent': row.get('beast_mode_percent', 0)
+                'very_light_percent': to_python_type(row.get('very_light_percent', 0)),
+                'light_percent': to_python_type(row.get('light_percent', 0)),
+                'moderate_percent': to_python_type(row.get('moderate_percent', 0)),
+                'intense_percent': to_python_type(row.get('intense_percent', 0)),
+                'beast_mode_percent': to_python_type(row.get('beast_mode_percent', 0))
             })
 
             loaded_count += 1
@@ -317,15 +379,20 @@ def load_march_timeseries_data(conn, df, march_id):
     # Prepare data for batch insert
     records = []
     for _, row in df.iterrows():
+        # Convert values to match database schema types
+        # timestamp_minutes: INTEGER
+        timestamp_val = to_python_type(row.get('timestamp_minutes', 0))
+        timestamp_minutes = int(round(timestamp_val)) if timestamp_val is not None else 0
+
         records.append({
             'march_id': march_id,
-            'user_id': row['user_id'],
-            'timestamp_minutes': row.get('timestamp_minutes', 0),
-            'heart_rate': row.get('heart_rate'),
-            'step_rate': row.get('step_rate'),
-            'estimated_speed_kmh': row.get('speed_kmh') or row.get('estimated_speed_kmh'),
-            'cumulative_steps': row.get('steps') or row.get('cumulative_steps'),
-            'cumulative_distance_km': row.get('cumulative_distance_km')
+            'user_id': int(row['user_id']),
+            'timestamp_minutes': timestamp_minutes,
+            'heart_rate': to_int(row.get('heart_rate')),  # INTEGER
+            'step_rate': to_int(row.get('step_rate')),  # INTEGER
+            'estimated_speed_kmh': to_decimal(row.get('speed_kmh') or row.get('estimated_speed_kmh'), 2, max_value=99.99),  # NUMERIC(4,2) - max 99.99
+            'cumulative_steps': to_int(row.get('steps') or row.get('cumulative_steps')),  # INTEGER
+            'cumulative_distance_km': to_decimal(row.get('cumulative_distance_km'), 2, max_value=999.99)  # NUMERIC(5,2) - max 999.99
         })
 
         # Insert in batches
@@ -339,6 +406,12 @@ def load_march_timeseries_data(conn, df, march_id):
                     :march_id, :user_id, :timestamp_minutes, :heart_rate, :step_rate,
                     :estimated_speed_kmh, :cumulative_steps, :cumulative_distance_km
                 )
+                ON CONFLICT (march_id, user_id, timestamp_minutes) DO UPDATE SET
+                    heart_rate = COALESCE(EXCLUDED.heart_rate, march_timeseries_data.heart_rate),
+                    step_rate = COALESCE(EXCLUDED.step_rate, march_timeseries_data.step_rate),
+                    estimated_speed_kmh = COALESCE(EXCLUDED.estimated_speed_kmh, march_timeseries_data.estimated_speed_kmh),
+                    cumulative_steps = COALESCE(EXCLUDED.cumulative_steps, march_timeseries_data.cumulative_steps),
+                    cumulative_distance_km = COALESCE(EXCLUDED.cumulative_distance_km, march_timeseries_data.cumulative_distance_km)
             """), records)
             loaded_count += len(records)
             print(f"  ... loaded {loaded_count} records")
@@ -355,6 +428,12 @@ def load_march_timeseries_data(conn, df, march_id):
                 :march_id, :user_id, :timestamp_minutes, :heart_rate, :step_rate,
                 :estimated_speed_kmh, :cumulative_steps, :cumulative_distance_km
             )
+            ON CONFLICT (march_id, user_id, timestamp_minutes) DO UPDATE SET
+                heart_rate = COALESCE(EXCLUDED.heart_rate, march_timeseries_data.heart_rate),
+                step_rate = COALESCE(EXCLUDED.step_rate, march_timeseries_data.step_rate),
+                estimated_speed_kmh = COALESCE(EXCLUDED.estimated_speed_kmh, march_timeseries_data.estimated_speed_kmh),
+                cumulative_steps = COALESCE(EXCLUDED.cumulative_steps, march_timeseries_data.cumulative_steps),
+                cumulative_distance_km = COALESCE(EXCLUDED.cumulative_distance_km, march_timeseries_data.cumulative_distance_km)
         """), records)
         loaded_count += len(records)
 
@@ -383,13 +462,13 @@ def load_march_gps_positions(conn, df, march_id):
     for _, row in df.iterrows():
         records.append({
             'march_id': march_id,
-            'user_id': row['user_id'],
-            'timestamp_minutes': row.get('timestamp_minutes', 0),
-            'latitude': row.get('latitude'),
-            'longitude': row.get('longitude'),
-            'elevation': row.get('elevation'),
-            'speed_kmh': row.get('speed_kmh'),
-            'bearing': row.get('bearing')
+            'user_id': int(row['user_id']),
+            'timestamp_minutes': to_python_type(row.get('timestamp_minutes', 0)),
+            'latitude': to_python_type(row.get('latitude')),
+            'longitude': to_python_type(row.get('longitude')),
+            'elevation': to_python_type(row.get('elevation')),
+            'speed_kmh': to_python_type(row.get('speed_kmh')),
+            'bearing': to_python_type(row.get('bearing'))
         })
 
         # Insert in batches
@@ -561,14 +640,14 @@ def main():
             # Load in order: metrics -> hr_zones -> timeseries -> gps
             total_loaded = 0
 
-            if metrics_df is not None:
-                total_loaded += load_march_health_metrics(conn, metrics_df, args.march_id)
+            # if metrics_df is not None:
+            #     total_loaded += load_march_health_metrics(conn, metrics_df, args.march_id)
 
-            if hr_zones_df is not None:
-                total_loaded += load_march_hr_zones(conn, hr_zones_df, args.march_id)
+            # if hr_zones_df is not None:
+            #     total_loaded += load_march_hr_zones(conn, hr_zones_df, args.march_id)
 
-            if timeseries_df is not None:
-                total_loaded += load_march_timeseries_data(conn, timeseries_df, args.march_id)
+            # if timeseries_df is not None:
+            #     total_loaded += load_march_timeseries_data(conn, timeseries_df, args.march_id)
 
             if gps_df is not None:
                 total_loaded += load_march_gps_positions(conn, gps_df, args.march_id)

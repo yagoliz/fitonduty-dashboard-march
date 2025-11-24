@@ -33,3 +33,6 @@ all:
     # Change hosts here
     db_host: localhost
     dash_host: localhost
+
+    # Set seeding mode
+    march_seed_mode: mock

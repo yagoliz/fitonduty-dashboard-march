@@ -13,7 +13,11 @@ database_port: 5432
 # Schema and seed files
 march_schema_file: schema.sql
 march_seed_script: seed_database.py
+march_schema_only_script: create_schema.py
 
 # Seeding behavior
-# Options: 'sample' (schema + demo data), 'users' (schema + users only), 'none' (schema only)
-march_seed_mode: sample
+# Options:
+#   - 'none': Schema only (use for production, load real data separately)
+#   - 'mock': Schema + mock/sample data (use for development/testing)
+# Default: 'none' (production-ready, no mock data)
+march_seed_mode: none

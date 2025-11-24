@@ -7,3 +7,6 @@ vault_postgres_password: your-postgres-admin-password
 
 # March database user password
 vault_march_db_password: your-march-database-password
+
+# Flask secret key
+flask_key: your-secret-key

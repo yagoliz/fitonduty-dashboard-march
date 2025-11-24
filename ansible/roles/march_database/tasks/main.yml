@@ -47,13 +47,22 @@
     group: postgres
     mode: '0644'
 
-- name: Copy database seeding script
+- name: Copy schema-only creation script
+  copy:
+    src: "{{ playbook_dir }}/../../database/create_schema.py"
+    dest: "{{ march_working_dir }}/scripts/create_schema.py"
+    owner: postgres
+    group: postgres
+    mode: '0755'
+
+- name: Copy database seeding script (with mock data)
   copy:
     src: "{{ playbook_dir }}/../../database/seed_database.py"
     dest: "{{ march_working_dir }}/scripts/seed_database.py"
     owner: postgres
     group: postgres
     mode: '0755'
+  when: march_seed_mode == 'mock'
 
 - name: Check if march database exists
   postgresql_query:
@@ -102,13 +111,23 @@
     backup: yes
   notify: restart postgresql
 
-- name: Run database schema creation
+- name: Create database schema only (no seed data)
+  shell: |
+    export DATABASE_URL="postgresql://{{ postgres_user }}:{{ vault_postgres_password }}@{{ database_host }}:{{ database_port }}/{{ march_db_name }}"
+    {{ march_venv_dir }}/bin/python {{ march_working_dir }}/scripts/create_schema.py
+  become_user: postgres
+  register: schema_result
+  changed_when: "'Tables created successfully' in schema_result.stdout"
+  when: march_seed_mode == 'none'
+
+- name: Create database schema with mock data (development/testing)
   shell: |
     export DATABASE_URL="postgresql://{{ postgres_user }}:{{ vault_postgres_password }}@{{ database_host }}:{{ database_port }}/{{ march_db_name }}"
     {{ march_venv_dir }}/bin/python {{ march_working_dir }}/scripts/seed_database.py
   become_user: postgres
-  register: schema_result
-  changed_when: "'Tables created successfully' in schema_result.stdout"
+  register: seed_result
+  changed_when: "'Tables created successfully' in seed_result.stdout"
+  when: march_seed_mode == 'mock'
 
 - name: Grant permissions to march database user
   postgresql_query:

@@ -128,7 +128,7 @@ def display_page(pathname):
     """Main routing logic with authentication"""
 
     if pathname == "/login" or not current_user.is_authenticated:
-        return create_login_form()
+        return create_login_form(app_config.DEBUG)
 
     # Authenticated routes
     if pathname == "/" or pathname is None:
@@ -155,7 +155,7 @@ def create_authenticated_layout(march_id=None, participant_id=None):
     """Create main layout for authenticated users"""
 
     if not current_user.is_authenticated:
-        return create_login_form()
+        return create_login_form(app_config.DEBUG)
 
     # Custom navigation bar with better alignment
     navbar = html.Nav([

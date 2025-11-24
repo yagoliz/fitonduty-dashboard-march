@@ -917,6 +917,13 @@ class WatchDataProcessor:
                       'steps', 'speed_kmh', 'cumulative_distance_km']
             timeseries_df = timeseries_df[[col for col in columns if col in timeseries_df.columns]]
 
+            # Remove negative timestamps (data before march start)
+            if 'timestamp_minutes' in timeseries_df.columns:
+                negative_count = (timeseries_df['timestamp_minutes'] < 0).sum()
+                if negative_count > 0:
+                    logger.info(f"Removing {negative_count} rows with negative timestamps (before march start)")
+                    timeseries_df = timeseries_df[timeseries_df['timestamp_minutes'] >= 0]
+
             timeseries_file = output_dir / 'march_timeseries_data.csv'
             timeseries_df.to_csv(timeseries_file, index=False)
             logger.info(f"Saved timeseries data to {timeseries_file}")
@@ -937,6 +944,13 @@ class WatchDataProcessor:
             columns = ['march_id', 'user_id', 'timestamp_minutes', 'latitude', 'longitude',
                       'elevation', 'speed_kmh']
             gps_positions_df = gps_positions_df[[col for col in columns if col in gps_positions_df.columns]]
+
+            # Remove negative timestamps (data before march start)
+            if 'timestamp_minutes' in gps_positions_df.columns:
+                negative_count = (gps_positions_df['timestamp_minutes'] < 0).sum()
+                if negative_count > 0:
+                    logger.info(f"Removing {negative_count} GPS rows with negative timestamps (before march start)")
+                    gps_positions_df = gps_positions_df[gps_positions_df['timestamp_minutes'] >= 0]
 
             # Add bearing calculation if possible
             if 'latitude' in gps_positions_df.columns and 'longitude' in gps_positions_df.columns:
