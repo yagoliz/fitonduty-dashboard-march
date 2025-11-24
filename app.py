@@ -48,6 +48,17 @@ app_config = config.get(config_name, config['default'])
 
 server.config.from_object(app_config)
 
+# Configure proxy trust for Cloudflare tunnel, nginx, etc.
+# This is critical for proper session handling behind proxies
+from werkzeug.middleware.proxy_fix import ProxyFix
+server.wsgi_app = ProxyFix(
+    server.wsgi_app,
+    x_for=1,  # Trust X-Forwarded-For
+    x_proto=1,  # Trust X-Forwarded-Proto (HTTP vs HTTPS)
+    x_host=1,  # Trust X-Forwarded-Host
+    x_prefix=1  # Trust X-Forwarded-Prefix
+)
+
 # Initialize database connection
 init_database_manager(app_config.DATABASE_URL)
 
@@ -128,7 +139,7 @@ def display_page(pathname):
     """Main routing logic with authentication"""
 
     if pathname == "/login" or not current_user.is_authenticated:
-        return create_login_form(app_config.DEBUG)
+        return create_login_form(app_config.ENV == 'development')
 
     # Authenticated routes
     if pathname == "/" or pathname is None:
@@ -155,7 +166,7 @@ def create_authenticated_layout(march_id=None, participant_id=None):
     """Create main layout for authenticated users"""
 
     if not current_user.is_authenticated:
-        return create_login_form(app_config.DEBUG)
+        return create_login_form(app_config.ENV == 'development')
 
     # Custom navigation bar with better alignment
     navbar = html.Nav([

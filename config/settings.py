@@ -41,10 +41,16 @@ class Config:
     # Database
     DATABASE_URL = _get_database_url()
 
-    # Session settings  
+    # Session settings
     SESSION_COOKIE_SECURE = os.environ.get('SESSION_COOKIE_SECURE', 'false').lower() == 'true'
     SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = 'Lax'  # Important for proxy/tunnel compatibility
     PERMANENT_SESSION_LIFETIME = timedelta(days=1)
+    SESSION_COOKIE_NAME = 'march_session'  # Explicit session cookie name
+    REMEMBER_COOKIE_SECURE = os.environ.get('SESSION_COOKIE_SECURE', 'false').lower() == 'true'
+    REMEMBER_COOKIE_HTTPONLY = True
+    REMEMBER_COOKIE_SAMESITE = 'Lax'
+    REMEMBER_COOKIE_DURATION = timedelta(days=7)
 
     # Dashboard settings
     DASHBOARD_TITLE = os.environ.get('DASHBOARD_TITLE', 'FitonDuty March Dashboard')
@@ -57,11 +63,17 @@ class Config:
     # Data refresh settings
     DATA_REFRESH_INTERVAL = int(os.environ.get('DATA_REFRESH_INTERVAL', 30))
 
+    # Proxy settings (for Cloudflare tunnel, nginx, etc.)
+    PREFERRED_URL_SCHEME = 'https'  # Assume HTTPS when behind proxy
+
 
 class DevelopmentConfig(Config):
     """Development configuration"""
     DEBUG = True
     ENV = 'development'
+    SESSION_COOKIE_SECURE = False  # Allow HTTP in development
+    REMEMBER_COOKIE_SECURE = False
+    PREFERRED_URL_SCHEME = 'http'
 
 
 class ProductionConfig(Config):
@@ -69,6 +81,9 @@ class ProductionConfig(Config):
     DEBUG = False
     ENV = 'production'
     SESSION_COOKIE_SECURE = True
+    REMEMBER_COOKIE_SECURE = True
+    # Force HTTPS for all URLs when behind Cloudflare tunnel
+    PREFERRED_URL_SCHEME = 'https'
 
 
 # Configuration dictionary
