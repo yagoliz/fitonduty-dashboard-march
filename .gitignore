@@ -12,6 +12,9 @@ ansible/vaults/*
 # Data stuff
 .output/*
 
+# Notebooks
+notebooks
+
 # Seed Data
 config/seed-data/*
 !config/seed-data/example_*

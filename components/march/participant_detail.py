@@ -29,69 +29,107 @@ def create_performance_summary_cards(summary_data: dict[str, Any]) -> dbc.Row:
     card_data = create_performance_summary_card_data(summary_data)
 
     # Performance status badge
-    status_color = "success" if summary_data.get('completed', False) else "warning"
-    status_badge = dbc.Badge(
-        card_data['completion_status'],
-        color=status_color,
-        className="mb-2"
-    )
+    status_color = "success" if summary_data.get("completed", False) else "warning"
+    status_badge = dbc.Badge(card_data["completion_status"], color=status_color, className="mb-2")
 
     cards = [
         # Duration & Completion
-        dbc.Col([
-            dbc.Card([
-                dbc.CardBody([
-                    html.H6([
-                        html.I(className="fas fa-clock me-2"),
-                        "March Duration"
-                    ], className="metric-label"),
-                    html.H4(card_data['duration'], className="metric-value"),
-                    status_badge
-                ])
-            ], className="h-100 metric-card")
-        ], width=6, lg=3),
-
+        dbc.Col(
+            [
+                dbc.Card(
+                    [
+                        dbc.CardBody(
+                            [
+                                html.H6(
+                                    [html.I(className="fas fa-clock me-2"), "March Duration"],
+                                    className="metric-label",
+                                ),
+                                html.H4(card_data["duration"], className="metric-value"),
+                                status_badge,
+                            ]
+                        )
+                    ],
+                    className="h-100 metric-card",
+                )
+            ],
+            width=6,
+            lg=3,
+        ),
         # Average Pace
-        dbc.Col([
-            dbc.Card([
-                dbc.CardBody([
-                    html.H6([
-                        html.I(className="fas fa-tachometer-alt me-2"),
-                        "Average Pace"
-                    ], className="metric-label"),
-                    html.H4(card_data['avg_pace'], className="metric-value"),
-                    html.Small(f"Distance: {card_data['estimated_distance']}", className="text-muted")
-                ])
-            ], className="h-100 metric-card")
-        ], width=6, lg=3),
-
+        dbc.Col(
+            [
+                dbc.Card(
+                    [
+                        dbc.CardBody(
+                            [
+                                html.H6(
+                                    [
+                                        html.I(className="fas fa-tachometer-alt me-2"),
+                                        "Average Pace",
+                                    ],
+                                    className="metric-label",
+                                ),
+                                html.H4(card_data["avg_pace"], className="metric-value"),
+                                html.Small(
+                                    f"Distance: {card_data['estimated_distance']}",
+                                    className="text-muted",
+                                ),
+                            ]
+                        )
+                    ],
+                    className="h-100 metric-card",
+                )
+            ],
+            width=6,
+            lg=3,
+        ),
         # Steps & Activity
-        dbc.Col([
-            dbc.Card([
-                dbc.CardBody([
-                    html.H6([
-                        html.I(className="fas fa-walking me-2"),
-                        "Total Steps"
-                    ], className="metric-label"),
-                    html.H4(card_data['total_steps'], className="metric-value"),
-                    html.Small("Step count", className="text-muted")
-                ])
-            ], className="h-100 metric-card")
-        ], width=6, lg=3),
-
+        dbc.Col(
+            [
+                dbc.Card(
+                    [
+                        dbc.CardBody(
+                            [
+                                html.H6(
+                                    [html.I(className="fas fa-walking me-2"), "Total Steps"],
+                                    className="metric-label",
+                                ),
+                                html.H4(card_data["total_steps"], className="metric-value"),
+                                html.Small("Step count", className="text-muted"),
+                            ]
+                        )
+                    ],
+                    className="h-100 metric-card",
+                )
+            ],
+            width=6,
+            lg=3,
+        ),
         # Average Heart Rate
-        dbc.Col([
-            dbc.Card([
-                dbc.CardBody([
-                    html.H6([
-                        html.I(className="fas fa-heartbeat me-2"),
-                        "Average Heart Rate"
-                    ], className="metric-label"),
-                    html.H4(card_data['avg_hr'], className="metric-value"),
-                    html.Small(f"Max: {card_data['max_hr']}", className="text-muted")
-                ])
-            ], className="h-100 metric-card")
-        ], width=6, lg=3),
+        dbc.Col(
+            [
+                dbc.Card(
+                    [
+                        dbc.CardBody(
+                            [
+                                html.H6(
+                                    [
+                                        html.I(className="fas fa-heartbeat me-2"),
+                                        "Average Heart Rate",
+                                    ],
+                                    className="metric-label",
+                                ),
+                                html.H4(card_data["avg_hr"], className="metric-value"),
+                                html.Small(f"Max: {card_data['max_hr']}", className="text-muted"),
+                            ]
+                        )
+                    ],
+                    className="h-100 metric-card",
+                )
+            ],
+            width=6,
+            lg=3,
+        ),
     ]
 
     return dbc.Row(cards, className="mb-4")
@@ -106,17 +144,19 @@ def create_participant_detail_view(march_id: int, user_id: int) -> html.Div:
         timeseries_data = get_march_timeseries_data(march_id, user_id)
 
         if not summary_data:
-            return html.Div([
-                dbc.Alert(
-                    [
-                        html.H4("Participant Not Found", className="alert-heading"),
-                        html.P("No performance data found for this participant in this march.")
-                    ],
-                    color="warning"
-                )
-            ])
+            return html.Div(
+                [
+                    dbc.Alert(
+                        [
+                            html.H4("Participant Not Found", className="alert-heading"),
+                            html.P("No performance data found for this participant in this march."),
+                        ],
+                        color="warning",
+                    )
+                ]
+            )
 
-        participant_name = summary_data.get('march_name', 'Unknown March')
+        participant_name = summary_data.get("march_name", "Unknown March")
 
         # Create summary cards
         summary_cards = create_performance_summary_cards(summary_data)
@@ -132,153 +172,344 @@ def create_participant_detail_view(march_id: int, user_id: int) -> html.Div:
         # Create map and elevation profile if GPS data available
         route_map = None
         elevation_chart = None
+        elevation_stats = None
         if not gps_data.empty:
             route_map = create_march_route_map(gps_data, participant_name)
-            elevation_chart = create_elevation_profile(gps_data, participant_name)
+            elevation_chart, elevation_stats = create_elevation_profile(gps_data, participant_name)
 
-        return html.Div([
-            # Header
-            dbc.Row([
-                dbc.Col([
-                    html.H2([
-                        html.I(className="fas fa-chart-line me-2"),
-                        "March Performance Analysis",
-                        html.Small(f" - {participant_name}", className="text-muted ms-2")
-                    ], className="text-gradient"),
-                    html.Hr()
-                ])
-            ], className="mb-3"),
-
-            # Performance Summary Cards
-            summary_cards,
-
-            # GPS Route Map (if available)
-            dbc.Row([
-                dbc.Col([
-                    dbc.Card([
-                        dbc.CardHeader([
-                            html.H5([
-                                html.I(className="fas fa-map-marked-alt me-2"),
-                                "Route Map"
-                            ], className="mb-0 text-professional")
-                        ]),
-                        dbc.CardBody([
-                            dcc.Graph(
-                                figure=route_map,
-                                config={
-                                    'displayModeBar': True,
-                                    'displaylogo': False,
-                                    'scrollZoom': True,
-                                    'modeBarButtonsToRemove': ['lasso2d', 'select2d'],
-                                    'toImageButtonOptions': {
-                                        'format': 'png',
-                                        'filename': 'march_route',
-                                        'height': 1200,
-                                        'width': 1600,
-                                        'scale': 2
-                                    }
-                                },
-                                style={'height': '600px'}
-                            ) if route_map else html.Div([
-                                html.P("No GPS data available for this march",
-                                      className="text-muted text-center py-4")
-                            ])
-                        ], style={'padding': '0'})
-                    ], className="map-container")
-                ], width=12)
-            ], className="mb-4") if route_map or not gps_data.empty else html.Div(),
-
-            # Elevation Profile (if available)
-            dbc.Row([
-                dbc.Col([
-                    dbc.Card([
-                        dbc.CardHeader([
-                            html.H6([
-                                html.I(className="fas fa-mountain me-2"),
-                                "Elevation Profile"
-                            ], className="mb-0 text-professional")
-                        ]),
-                        dbc.CardBody([
-                            dcc.Graph(
-                                figure=elevation_chart,
-                                config={'displayModeBar': False}
+        return html.Div(
+            [
+                # Header
+                dbc.Row(
+                    [
+                        dbc.Col(
+                            [
+                                html.H2(
+                                    [
+                                        html.I(className="fas fa-chart-line me-2"),
+                                        "March Performance Analysis",
+                                        html.Small(
+                                            f" - {participant_name}", className="text-muted ms-2"
+                                        ),
+                                    ],
+                                    className="text-gradient",
+                                ),
+                                html.Hr(),
+                            ]
+                        )
+                    ],
+                    className="mb-3",
+                ),
+                # Performance Summary Cards
+                summary_cards,
+                # GPS Route Map (if available)
+                (
+                    dbc.Row(
+                        [
+                            dbc.Col(
+                                [
+                                    dbc.Card(
+                                        [
+                                            dbc.CardHeader(
+                                                [
+                                                    html.H5(
+                                                        [
+                                                            html.I(
+                                                                className="fas fa-map-marked-alt me-2"
+                                                            ),
+                                                            "Route Map",
+                                                        ],
+                                                        className="mb-0 text-professional",
+                                                    )
+                                                ]
+                                            ),
+                                            dbc.CardBody(
+                                                [
+                                                    (
+                                                        dcc.Graph(
+                                                            figure=route_map,
+                                                            config={
+                                                                "displayModeBar": False,
+                                                                "displaylogo": False,
+                                                                "scrollZoom": True,
+                                                                "modeBarButtonsToRemove": [
+                                                                    "lasso2d",
+                                                                    "select2d",
+                                                                ],
+                                                                "toImageButtonOptions": {
+                                                                    "format": "png",
+                                                                    "filename": "march_route",
+                                                                    "height": 1200,
+                                                                    "width": 1600,
+                                                                    "scale": 2,
+                                                                },
+                                                            },
+                                                            style={"height": "600px"},
+                                                        )
+                                                        if route_map
+                                                        else html.Div(
+                                                            [
+                                                                html.P(
+                                                                    "No GPS data available for this march",
+                                                                    className="text-muted text-center py-4",
+                                                                )
+                                                            ]
+                                                        )
+                                                    )
+                                                ],
+                                                style={"padding": "0"},
+                                            ),
+                                        ],
+                                        className="map-container",
+                                    )
+                                ],
+                                width=12,
                             )
-                        ])
-                    ], className="chart-container")
-                ], width=12)
-            ], className="mb-4") if elevation_chart else html.Div(),
-
-            # Main Timeline Chart
-            dbc.Row([
-                dbc.Col([
-                    dbc.Card([
-                        dbc.CardHeader([
-                            html.H5([
-                                html.I(className="fas fa-chart-line me-2"),
-                                "Heart Rate & Speed Timeline"
-                            ], className="mb-0 text-professional")
-                        ]),
-                        dbc.CardBody([
-                            dcc.Graph(
-                                figure=hr_speed_chart,
-                                config={'displayModeBar': False}
+                        ],
+                        className="mb-4",
+                    )
+                    if route_map or not gps_data.empty
+                    else html.Div()
+                ),
+                # Elevation Profile (if available)
+                (
+                    dbc.Row(
+                        [
+                            dbc.Col(
+                                [
+                                    dbc.Card(
+                                        [
+                                            dbc.CardHeader(
+                                                [
+                                                    html.H6(
+                                                        [
+                                                            html.I(
+                                                                className="fas fa-mountain me-2"
+                                                            ),
+                                                            "Elevation Profile",
+                                                        ],
+                                                        className="mb-0 text-professional",
+                                                    )
+                                                ]
+                                            ),
+                                            dbc.CardBody(
+                                                [
+                                                    # Elevation statistics badges
+                                                    (
+                                                        html.Div(
+                                                            [
+                                                                (
+                                                                    dbc.Badge(
+                                                                        [
+                                                                            html.I(
+                                                                                className="fas fa-arrow-up me-1"
+                                                                            ),
+                                                                            f"Max: {elevation_stats['max_elevation']:.0f}m",
+                                                                        ],
+                                                                        color="success",
+                                                                        className="me-2",
+                                                                    )
+                                                                    if elevation_stats
+                                                                    and elevation_stats[
+                                                                        "max_elevation"
+                                                                    ]
+                                                                    else None
+                                                                ),
+                                                                (
+                                                                    dbc.Badge(
+                                                                        [
+                                                                            html.I(
+                                                                                className="fas fa-arrow-down me-1"
+                                                                            ),
+                                                                            f"Min: {elevation_stats['min_elevation']:.0f}m",
+                                                                        ],
+                                                                        color="info",
+                                                                        className="me-2",
+                                                                    )
+                                                                    if elevation_stats
+                                                                    and elevation_stats[
+                                                                        "min_elevation"
+                                                                    ]
+                                                                    else None
+                                                                ),
+                                                                (
+                                                                    dbc.Badge(
+                                                                        [
+                                                                            html.I(
+                                                                                className="fas fa-level-up-alt me-1"
+                                                                            ),
+                                                                            f"Ascent: {elevation_stats['total_ascent']:.0f}m",
+                                                                        ],
+                                                                        color="primary",
+                                                                        className="me-2",
+                                                                    )
+                                                                    if elevation_stats
+                                                                    and elevation_stats[
+                                                                        "total_ascent"
+                                                                    ]
+                                                                    else None
+                                                                ),
+                                                                (
+                                                                    dbc.Badge(
+                                                                        [
+                                                                            html.I(
+                                                                                className="fas fa-level-down-alt me-1"
+                                                                            ),
+                                                                            f"Descent: {elevation_stats['total_descent']:.0f}m",
+                                                                        ],
+                                                                        color="warning",
+                                                                    )
+                                                                    if elevation_stats
+                                                                    and elevation_stats[
+                                                                        "total_descent"
+                                                                    ]
+                                                                    else None
+                                                                ),
+                                                            ],
+                                                            className="mb-3 d-flex flex-wrap gap-2",
+                                                        )
+                                                        if elevation_stats
+                                                        else None
+                                                    ),
+                                                    # Chart
+                                                    dcc.Graph(
+                                                        figure=elevation_chart,
+                                                        config={"displayModeBar": False},
+                                                    ),
+                                                ]
+                                            ),
+                                        ],
+                                        className="chart-container",
+                                    )
+                                ],
+                                width=12,
                             )
-                        ])
-                    ], className="chart-container")
-                ], width=12)
-            ], className="mb-4"),
-
-            # Analysis Charts
-            dbc.Row([
-                # Cumulative Steps
-                dbc.Col([
-                    dbc.Card([
-                        dbc.CardHeader([
-                            html.H6([
-                                html.I(className="fas fa-walking me-2"),
-                                "Step Progress"
-                            ], className="mb-0 text-professional")
-                        ]),
-                        dbc.CardBody([
-                            dcc.Graph(
-                                figure=steps_chart,
-                                config={'displayModeBar': False}
-                            )
-                        ])
-                    ], className="chart-container")
-                ], width=12, lg=6),
-
-                # Pace Consistency
-                dbc.Col([
-                    dbc.Card([
-                        dbc.CardHeader([
-                            html.H6([
-                                html.I(className="fas fa-tachometer-alt me-2"),
-                                "Pace Analysis"
-                            ], className="mb-0 text-professional")
-                        ]),
-                        dbc.CardBody([
-                            dcc.Graph(
-                                figure=pace_chart,
-                                config={'displayModeBar': False}
-                            )
-                        ])
-                    ], className="chart-container")
-                ], width=12, lg=6)
-            ], className="mb-4")
-
-        ])
+                        ],
+                        className="mb-4",
+                    )
+                    if elevation_chart
+                    else html.Div()
+                ),
+                # Main Timeline Chart
+                dbc.Row(
+                    [
+                        dbc.Col(
+                            [
+                                dbc.Card(
+                                    [
+                                        dbc.CardHeader(
+                                            [
+                                                html.H5(
+                                                    [
+                                                        html.I(className="fas fa-chart-line me-2"),
+                                                        "Heart Rate & Speed Timeline",
+                                                    ],
+                                                    className="mb-0 text-professional",
+                                                )
+                                            ]
+                                        ),
+                                        dbc.CardBody(
+                                            [
+                                                dcc.Graph(
+                                                    figure=hr_speed_chart,
+                                                    config={"displayModeBar": False},
+                                                )
+                                            ]
+                                        ),
+                                    ],
+                                    className="chart-container",
+                                )
+                            ],
+                            width=12,
+                        )
+                    ],
+                    className="mb-4",
+                ),
+                # Analysis Charts
+                dbc.Row(
+                    [
+                        # Cumulative Steps
+                        dbc.Col(
+                            [
+                                dbc.Card(
+                                    [
+                                        dbc.CardHeader(
+                                            [
+                                                html.H6(
+                                                    [
+                                                        html.I(className="fas fa-walking me-2"),
+                                                        "Step Progress",
+                                                    ],
+                                                    className="mb-0 text-professional",
+                                                )
+                                            ]
+                                        ),
+                                        dbc.CardBody(
+                                            [
+                                                dcc.Graph(
+                                                    figure=steps_chart,
+                                                    config={"displayModeBar": False},
+                                                )
+                                            ]
+                                        ),
+                                    ],
+                                    className="chart-container",
+                                )
+                            ],
+                            width=12,
+                            lg=6,
+                        ),
+                        # Pace Consistency
+                        dbc.Col(
+                            [
+                                dbc.Card(
+                                    [
+                                        dbc.CardHeader(
+                                            [
+                                                html.H6(
+                                                    [
+                                                        html.I(
+                                                            className="fas fa-tachometer-alt me-2"
+                                                        ),
+                                                        "Pace Analysis",
+                                                    ],
+                                                    className="mb-0 text-professional",
+                                                )
+                                            ]
+                                        ),
+                                        dbc.CardBody(
+                                            [
+                                                dcc.Graph(
+                                                    figure=pace_chart,
+                                                    config={"displayModeBar": False},
+                                                )
+                                            ]
+                                        ),
+                                    ],
+                                    className="chart-container",
+                                )
+                            ],
+                            width=12,
+                            lg=6,
+                        ),
+                    ],
+                    className="mb-4",
+                ),
+            ]
+        )
 
     except Exception as e:
-        return html.Div([
-            dbc.Alert(
-                [
-                    html.H4("Error Loading Data", className="alert-heading"),
-                    html.P(f"Unable to load participant performance data: {str(e)}")
-                ],
-                color="danger"
-            )
-        ])
+        return html.Div(
+            [
+                dbc.Alert(
+                    [
+                        html.H4("Error Loading Data", className="alert-heading"),
+                        html.P(f"Unable to load participant performance data: {str(e)}"),
+                    ],
+                    color="danger",
+                )
+            ]
+        )
 
 
 def create_participant_selector_modal(participants_data: pd.DataFrame) -> dbc.Modal:
@@ -289,75 +520,78 @@ def create_participant_selector_modal(participants_data: pd.DataFrame) -> dbc.Mo
     else:
         options = [
             {
-                'label': f"{row['username']} - {row['finish_time_minutes']}min (Avg HR: {row['avg_hr']} bpm)",
-                'value': row['user_id']
+                "label": f"{row['username']} - {row['finish_time_minutes']}min (Avg HR: {row['avg_hr']} bpm)",
+                "value": row["user_id"],
             }
             for _, row in participants_data.iterrows()
-            if row['completed']
+            if row["completed"]
         ]
 
-    return dbc.Modal([
-        dbc.ModalHeader([
-            dbc.ModalTitle("Select Participant for Detailed Analysis")
-        ]),
-        dbc.ModalBody([
-            html.P("Choose a participant to view their detailed march performance:"),
-            dcc.Dropdown(
-                id="participant-selector-dropdown",
-                options=options,
-                placeholder="Select a participant...",
-                className="mb-3"
-            )
-        ]),
-        dbc.ModalFooter([
-            dbc.Button(
-                "View Analysis",
-                id="view-participant-btn",
-                color="primary",
-                disabled=True
+    return dbc.Modal(
+        [
+            dbc.ModalHeader([dbc.ModalTitle("Select Participant for Detailed Analysis")]),
+            dbc.ModalBody(
+                [
+                    html.P("Choose a participant to view their detailed march performance:"),
+                    dcc.Dropdown(
+                        id="participant-selector-dropdown",
+                        options=options,
+                        placeholder="Select a participant...",
+                        className="mb-3",
+                    ),
+                ]
             ),
-            dbc.Button(
-                "Cancel",
-                id="cancel-participant-btn",
-                color="secondary",
-                className="ms-2"
-            )
-        ])
-    ], id="participant-selector-modal", size="lg")
+            dbc.ModalFooter(
+                [
+                    dbc.Button(
+                        "View Analysis", id="view-participant-btn", color="primary", disabled=True
+                    ),
+                    dbc.Button(
+                        "Cancel", id="cancel-participant-btn", color="secondary", className="ms-2"
+                    ),
+                ]
+            ),
+        ],
+        id="participant-selector-modal",
+        size="lg",
+    )
 
 
 def create_back_to_overview_button(march_id: int) -> dbc.Row:
     """Create navigation button to return to march overview"""
 
-    return dbc.Row([
-        dbc.Col([
-            dbc.Button(
+    return dbc.Row(
+        [
+            dbc.Col(
                 [
-                    html.I(className="fas fa-arrow-left me-2"),
-                    "Back to March Overview"
+                    dbc.Button(
+                        [html.I(className="fas fa-arrow-left me-2"), "Back to March Overview"],
+                        id={"type": "back-to-march-btn", "march_id": march_id},
+                        color="outline-secondary",
+                        size="sm",
+                        # className="btn-professional"
+                    )
                 ],
-                id={"type": "back-to-march-btn", "march_id": march_id},
-                color="outline-secondary",
-                size="sm",
-                # className="btn-professional"
+                width="auto",
             )
-        ], width="auto")
-    ], className="mb-3")
+        ],
+        className="mb-3",
+    )
 
 
 def create_participant_comparison_button(march_id: int) -> dbc.Col:
     """Create button to compare multiple participants"""
 
-    return dbc.Col([
-        dbc.Button(
-            [
-                html.I(className="fas fa-users me-2"),
-                "Compare Participants"
-            ],
-            id="compare-participants-btn",
-            color="info",
-            size="sm",
-            outline=True,
-            className="btn-outline-professional"
-        )
-    ], width="auto")
+    return dbc.Col(
+        [
+            dbc.Button(
+                [html.I(className="fas fa-users me-2"), "Compare Participants"],
+                id="compare-participants-btn",
+                color="info",
+                size="sm",
+                outline=True,
+                className="btn-outline-professional",
+            )
+        ],
+        width="auto",
+    )

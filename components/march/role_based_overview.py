@@ -440,22 +440,23 @@ def _create_personal_performance_card(user_summary, leaderboard_df=None, detail_
         className="me-2"
     )
 
-    rank_badge = html.Span()
-    if leaderboard_df is not None and not leaderboard_df.empty:
-        try:
-            total = len(leaderboard_df)
-            row = leaderboard_df[leaderboard_df['username'] == current_user.username]
-            if not row.empty and 'rank' in row.columns:
-                rank_val = int(row.iloc[0]['rank'])
-                pct = rank_val / total if total else 1
-                if pct <= 0.1:
-                    rank_badge = dbc.Badge("Top 10%", color="warning", className="me-2")
-                elif pct <= 0.25:
-                    rank_badge = dbc.Badge("Top 25%", color="info", className="me-2")
-                else:
-                    rank_badge = dbc.Badge(f"Rank {rank_val}/{total}", color="light", className="me-2")
-        except Exception:
-            pass
+    # Rank / percentile badge
+    # rank_badge = html.Span()
+    # if leaderboard_df is not None and not leaderboard_df.empty:
+    #     try:
+    #         total = len(leaderboard_df)
+    #         row = leaderboard_df[leaderboard_df['username'] == current_user.username]
+    #         if not row.empty and 'rank' in row.columns:
+    #             rank_val = int(row.iloc[0]['rank'])
+    #             pct = rank_val / total if total else 1
+    #             if pct <= 0.1:
+    #                 rank_badge = dbc.Badge("Top 10%", color="warning", className="me-2")
+    #             elif pct <= 0.25:
+    #                 rank_badge = dbc.Badge("Top 25%", color="info", className="me-2")
+    #             else:
+    #                 rank_badge = dbc.Badge(f"Rank {rank_val}/{total}", color="light", className="me-2")
+    #     except Exception:
+    #         pass
 
     # KPI chips
     def fmt(v, fmt_str, na="N/A"):
@@ -535,7 +536,8 @@ def _create_personal_performance_card(user_summary, leaderboard_df=None, detail_
     card_inner = dbc.Card([
         dbc.CardBody([
             html.Div([
-                html.Div([completion_badge, rank_badge], className="mb-2"),
+                # html.Div([completion_badge, rank_badge], className="mb-2"),
+                html.Div([completion_badge], className="mb-2"),
                 cta_link
             ], className="d-flex justify-content-between align-items-start"),
             kpis,
