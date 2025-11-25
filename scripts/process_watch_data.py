@@ -651,6 +651,14 @@ class WatchDataProcessor:
         # Calculate march duration
         march_duration_minutes = int(merged_df['timestamp_minutes'].max())
 
+        # Remove data with negative time (before march start)
+        merged_df = merged_df[merged_df['timestamp_minutes'] >= 0].reset_index(drop=True)
+
+        # Remove the initial cumulative distance offset if present
+        if 'cumulative_distance_km' in merged_df.columns:
+            initial_distance = merged_df['cumulative_distance_km'].min()
+            merged_df['cumulative_distance_km'] = merged_df['cumulative_distance_km'] - initial_distance
+
         # Resample to 1-minute intervals for timeseries data
         timeseries_df = merged_df.set_index('timestamp').resample('1min').agg({
             'heart_rate': 'mean',
@@ -665,26 +673,6 @@ class WatchDataProcessor:
             if timeseries_df['steps'].isna().any():
                 # Fill missing values with interpolation
                 timeseries_df['steps'] = timeseries_df['steps'].interpolate(method='linear')
-
-        # Reset cumulative values to 0 at march start time
-        if self.march_start_time is not None:
-            # Find the first row at or after march start time
-            start_mask = timeseries_df['timestamp'] >= self.march_start_time
-            if start_mask.any():
-                first_row_idx = timeseries_df[start_mask].index[0]
-
-                # Get baseline values (cumulative values at march start)
-                if 'cumulative_distance_km' in timeseries_df.columns:
-                    baseline_distance = timeseries_df.loc[first_row_idx, 'cumulative_distance_km']
-                    if pd.notna(baseline_distance):
-                        timeseries_df['cumulative_distance_km'] = timeseries_df['cumulative_distance_km'] - baseline_distance
-                        logger.info(f"  Reset cumulative_distance_km to 0 at march start (baseline: {baseline_distance:.2f}km)")
-
-                if 'steps' in timeseries_df.columns:
-                    baseline_steps = timeseries_df.loc[first_row_idx, 'steps']
-                    if pd.notna(baseline_steps):
-                        timeseries_df['steps'] = timeseries_df['steps'] - baseline_steps
-                        logger.info(f"  Reset steps to 0 at march start (baseline: {int(baseline_steps)} steps)")
 
         # Calculate aggregate metrics
         aggregate_metrics = self.calculate_aggregate_metrics(merged_df, march_duration_minutes)

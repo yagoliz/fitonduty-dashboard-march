@@ -827,10 +827,8 @@ class AccelerometerStepProcessor:
                 logger.error(f"Missing required columns in {acc_file}. Required: {required_cols}")
                 return None
 
-            # Ensure we have an index or timestamp column
-            if 'timestamp' not in df_acc.columns and not isinstance(df_acc.index, pd.DatetimeIndex):
-                logger.error(f"No timestamp information found in {acc_file}")
-                return None
+            # We need advance the index by 1 hour so that it matches watch data
+            df_acc.index += pd.Timedelta(hours=1)
 
             # Use index as timestamp if no timestamp column
             if 'timestamp' not in df_acc.columns:
