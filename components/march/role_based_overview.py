@@ -121,7 +121,6 @@ def create_admin_march_view(march_id: int, march_info):
     """Create admin view with full access to all participants and data"""
 
     participants = get_march_participants(march_id)
-    leaderboard = get_march_leaderboard(march_id, 'effort_score')
 
     # Back button
     back_button = _create_back_button()
@@ -131,7 +130,6 @@ def create_admin_march_view(march_id: int, march_info):
 
     # Full participant table with all data
     participants_component = _create_admin_participants_table(participants)
-    leaderboard_component = _create_leaderboard_table(leaderboard)
 
     return html.Div([
         back_button,
@@ -139,18 +137,11 @@ def create_admin_march_view(march_id: int, march_info):
         dbc.Row([
             dbc.Col([
                 html.H5([
-                    html.I(className="fas fa-trophy me-2 text-warning"),
-                    "Leaderboard"
-                ], className="section-title"),
-                leaderboard_component
-            ], md=6),
-            dbc.Col([
-                html.H5([
                     html.I(className="fas fa-users me-2 text-info"),
                     "All Participants"
                 ], className="section-title"),
                 participants_component
-            ], md=6)
+            ], md=12)
         ])
     ])
 

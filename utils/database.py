@@ -171,7 +171,7 @@ def get_march_events(status: str | None = None) -> pd.DataFrame:
 def get_march_participants(march_id: int) -> pd.DataFrame:
     """Get participants for a specific march"""
     query = """
-        SELECT 
+        SELECT
             mp.march_id,
             mp.user_id,
             u.username,
@@ -188,7 +188,7 @@ def get_march_participants(march_id: int) -> pd.DataFrame:
         JOIN users u ON mp.user_id = u.id
         LEFT JOIN march_health_metrics mhm ON mp.march_id = mhm.march_id AND mp.user_id = mhm.user_id
         WHERE mp.march_id = :march_id
-        ORDER BY mp.finish_time_minutes ASC NULLS LAST, u.username
+        ORDER BY u.username
     """
 
     try:
