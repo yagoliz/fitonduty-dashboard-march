@@ -1146,6 +1146,24 @@ class WatchDataProcessor:
         # Use first summary for metadata (or merge summaries if needed)
         merged_summary = all_summaries[0] if all_summaries else {}
 
+        # IMPORTANT: Find GPS crossing times on MERGED GPS data (if coordinates specified)
+        crossing_times = None
+        if not merged_gps.empty and (self.start_coords or self.end_coords):
+            logger.info(f"{participant_id}: Finding GPS crossing times on merged GPS data...")
+            crossing_times = self.find_gps_crossing_times(participant_id, merged_gps)
+
+            if crossing_times:
+                # Store crossing times for this participant
+                self.gps_crossing_times[participant_id] = crossing_times
+
+                # Trim merged GPS data using crossing times
+                merged_gps = self.trim_data_by_gps_times(merged_gps, crossing_times, "merged GPS data")
+
+        # Trim merged CSV data using GPS crossing times (if found)
+        if not merged_csv.empty and crossing_times:
+            logger.info(f"{participant_id}: Trimming merged CSV data using GPS crossing times")
+            merged_csv = self.trim_data_by_gps_times(merged_csv, crossing_times, "merged CSV data")
+
         # Process the merged data
         if not merged_csv.empty:
             logger.info(
@@ -1154,10 +1172,17 @@ class WatchDataProcessor:
             result = self._process_from_timeseries(participant_id, merged_csv, merged_gps, {})
             if merged_summary:
                 result["csv_summary"] = merged_summary
+            # Add crossing times to result
+            if crossing_times:
+                result["crossing_times"] = crossing_times
             return result
         elif merged_summary:
             logger.info(f"Processing merged summary for {participant_id}")
-            return self._process_from_summary(participant_id, merged_summary, merged_gps, {})
+            result = self._process_from_summary(participant_id, merged_summary, merged_gps, {})
+            # Add crossing times to result
+            if crossing_times:
+                result["crossing_times"] = crossing_times
+            return result
         else:
             logger.warning(f"No valid merged data for {participant_id}")
             return {}
