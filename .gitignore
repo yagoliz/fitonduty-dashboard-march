@@ -9,6 +9,9 @@ ansible/vaults/*
 !ansible/vaults/vault-example.yml
 .vault_pass
 
+# Scripts
+*.sh
+
 # Data stuff
 .output/*
 
