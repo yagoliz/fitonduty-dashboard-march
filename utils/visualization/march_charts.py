@@ -29,7 +29,7 @@ def create_hr_speed_timeline(
         return fig
 
     # Create subplot with secondary y-axis
-    fig = make_subplots(rows=1, cols=1, specs=[[{"secondary_y": True}]])
+    fig = make_subplots(rows=1, cols=1)
 
     # Convert minutes to hours
     time_hours = timeseries_data["timestamp_minutes"] / 60
@@ -44,22 +44,7 @@ def create_hr_speed_timeline(
             line=dict(color="#2c3e50", width=3),
             marker=dict(size=5, color="#2c3e50"),
             hovertemplate="<b>Time:</b> %{x:.2f} h<br><b>HR:</b> %{y} bpm<extra></extra>",
-        ),
-        secondary_y=False,
-    )
-
-    # Speed trace - using secondary color
-    fig.add_trace(
-        go.Scatter(
-            x=time_hours,
-            y=timeseries_data["estimated_speed_kmh"],
-            mode="lines+markers",
-            name="Speed",
-            line=dict(color="#3498db", width=3),
-            marker=dict(size=5, color="#3498db"),
-            hovertemplate="<b>Time:</b> %{x:.2f} h<br><b>Speed:</b> %{y:.1f} km/h<extra></extra>",
-        ),
-        secondary_y=True,
+        )
     )
 
     # Update x-axis
@@ -76,8 +61,6 @@ def create_hr_speed_timeline(
         gridcolor="rgba(231,76,60,0.1)",
         automargin=True,
     )
-
-    fig.update_yaxes(title_text="Speed (km/h)", secondary_y=True, showgrid=False, automargin=True)
 
     # Update layout with professional styling
     fig.update_layout(
