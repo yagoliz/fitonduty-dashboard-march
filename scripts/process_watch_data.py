@@ -666,6 +666,26 @@ class WatchDataProcessor:
                 # Fill missing values with interpolation
                 timeseries_df['steps'] = timeseries_df['steps'].interpolate(method='linear')
 
+        # Reset cumulative values to 0 at march start time
+        if self.march_start_time is not None:
+            # Find the first row at or after march start time
+            start_mask = timeseries_df['timestamp'] >= self.march_start_time
+            if start_mask.any():
+                first_row_idx = timeseries_df[start_mask].index[0]
+
+                # Get baseline values (cumulative values at march start)
+                if 'cumulative_distance_km' in timeseries_df.columns:
+                    baseline_distance = timeseries_df.loc[first_row_idx, 'cumulative_distance_km']
+                    if pd.notna(baseline_distance):
+                        timeseries_df['cumulative_distance_km'] = timeseries_df['cumulative_distance_km'] - baseline_distance
+                        logger.info(f"  Reset cumulative_distance_km to 0 at march start (baseline: {baseline_distance:.2f}km)")
+
+                if 'steps' in timeseries_df.columns:
+                    baseline_steps = timeseries_df.loc[first_row_idx, 'steps']
+                    if pd.notna(baseline_steps):
+                        timeseries_df['steps'] = timeseries_df['steps'] - baseline_steps
+                        logger.info(f"  Reset steps to 0 at march start (baseline: {int(baseline_steps)} steps)")
+
         # Calculate aggregate metrics
         aggregate_metrics = self.calculate_aggregate_metrics(merged_df, march_duration_minutes)
 
@@ -912,8 +932,8 @@ class WatchDataProcessor:
 
         if all_timeseries:
             timeseries_df = pd.concat(all_timeseries, ignore_index=True)
-            # Select only relevant columns
-            columns = ['march_id', 'user_id', 'timestamp_minutes', 'heart_rate',
+            # Select only relevant columns (include timestamp for easier merging)
+            columns = ['march_id', 'user_id', 'timestamp', 'timestamp_minutes', 'heart_rate',
                       'steps', 'speed_kmh', 'cumulative_distance_km']
             timeseries_df = timeseries_df[[col for col in columns if col in timeseries_df.columns]]
 

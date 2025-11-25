@@ -1,0 +1,254 @@
+# Step Data Processing Script
+
+## Overview
+
+The `process_step_data.py` script processes accelerometer data (acc.parquet files) to compute steps in time windows for march participants. It can also merge the computed step data with existing watch data.
+
+## Features
+
+- **Folder traversal**: Automatically finds all participant folders containing `acc.parquet` files
+- **Step computation**: Uses FFT-based algorithm to detect steps from accelerometer data
+- **Configurable windows**: Window size for step computation is configurable via CLI
+- **Timestamp alignment**: Supports march start time for proper timestamp alignment
+- **Watch data merging**: Can merge computed step data with existing watch timeseries data
+- **CSV output**: Generates compatible CSV files for database import
+
+## Usage
+
+### Basic Usage
+
+Process accelerometer data for all participants:
+
+```bash
+python scripts/process_step_data.py \
+  --data-dir /path/to/participants \
+  --march-id 1 \
+  --output ./output
+```
+
+### With Custom Window Size
+
+Use a different window size (default is 8 seconds):
+
+```bash
+python scripts/process_step_data.py \
+  --data-dir /path/to/participants \
+  --march-id 1 \
+  --window-size 10 \
+  --output ./output
+```
+
+### With March Start Time
+
+Align timestamps to a specific march start time:
+
+```bash
+python scripts/process_step_data.py \
+  --data-dir /path/to/participants \
+  --march-id 1 \
+  --march-start-time "2025-03-15T08:30:00" \
+  --output ./output
+```
+
+### Merge with Watch Data
+
+Process step data and merge with existing watch data:
+
+```bash
+python scripts/process_step_data.py \
+  --data-dir /path/to/participants \
+  --march-id 1 \
+  --output ./output \
+  --merge-with ./output/20251119/march_timeseries_data.csv
+```
+
+## Command-Line Arguments
+
+| Argument | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `--data-dir` | Yes | - | Root directory containing participant folders with acc.parquet files |
+| `--march-id` | Yes | - | March event ID |
+| `--window-size` | No | 8 | Window size in seconds for step computation |
+| `--march-start-time` | No | - | March start time in ISO format (YYYY-MM-DDTHH:MM:SS) |
+| `--output` | No | ./output | Output directory for CSV files |
+| `--merge-with` | No | - | Path to march_timeseries_data.csv to merge with |
+
+## Input Data Structure
+
+The script expects the following folder structure:
+
+```
+/path/to/participants/
+├── participant_001/
+│   ├── 2025-03-15/
+│   │   └── acc.parquet
+│   └── 2025-03-16/
+│       └── acc.parquet
+├── participant_002/
+│   └── 2025-03-15/
+│       └── acc.parquet
+└── participant_003/
+    └── 2025-03-15/
+        └── acc.parquet
+```
+
+**Note:** If a participant has multiple date folders, the script will process all dates and combine the data into a single output.
+
+Each `acc.parquet` file must contain:
+- **X, Y, Z columns**: Accelerometer measurements
+- **timestamp or index**: Timestamp information (as column or DatetimeIndex)
+
+## Output Files
+
+The script generates two CSV files:
+
+### 1. march_step_data.csv
+
+Detailed step data for each participant:
+
+| Column | Description |
+|--------|-------------|
+| march_id | March event ID |
+| user_id | Participant ID |
+| timestamp | Original timestamp from accelerometer data |
+| timestamp_minutes | Minutes since march start (or relative time) |
+| steps_per_second | Instantaneous steps per second |
+| cumulative_steps | Running total of steps |
+| sample | Sample index in original data |
+| window_size_seconds | Window size used for computation |
+
+### 2. march_step_summary.csv
+
+Summary statistics per participant:
+
+| Column | Description |
+|--------|-------------|
+| march_id | March event ID |
+| user_id | Participant ID |
+| total_steps | Total steps for the march |
+| avg_steps_per_second | Average steps per second (excluding zeros) |
+| window_size_seconds | Window size used for computation |
+
+### 3. march_timeseries_data_merged.csv (if --merge-with used)
+
+Merged watch and step data with step information from accelerometer replacing watch step data.
+
+## Algorithm Details
+
+### Step Detection
+
+The script uses a sophisticated FFT-based algorithm to detect steps:
+
+1. **High-pass filter**: Removes low-frequency drift from accelerometer magnitude
+2. **FFT analysis**: Identifies dominant frequency (cadence)
+3. **Peak detection**: Verifies step peaks using time-domain analysis
+4. **Quality checks**: Validates detected steps using amplitude and peak-to-noise ratio
+
+### Parameters
+
+- **Sampling rate**: 52 Hz (hardcoded, matching accelerometer data)
+- **FFT window**: 10 seconds for frequency analysis
+- **Step window**: Configurable (default 8 seconds)
+- **Valid cadence range**: 1.4 - 10 Hz (84 - 600 steps/min)
+
+## Merging with Watch Data
+
+The merge functionality:
+
+1. Reads existing watch timeseries data
+2. Reads computed step data
+3. Performs time-aligned merge using `timestamp_minutes`
+4. Replaces watch step values with accelerometer-computed steps
+5. Uses 1-minute tolerance for timestamp matching
+
+This is useful because watch data often lacks step information, which can be computed more accurately from accelerometer data.
+
+## Example Workflow
+
+```bash
+# Step 1: Process watch data (already done)
+# Output: .output/20251119/march_timeseries_data.csv
+
+# Step 2: Process accelerometer step data
+python scripts/process_step_data.py \
+  --data-dir /mnt/data/march_2025/participants \
+  --march-id 1 \
+  --march-start-time "2025-03-15T08:30:00" \
+  --output .output/20251119
+
+# Step 3: Merge with watch data
+python scripts/process_step_data.py \
+  --data-dir /mnt/data/march_2025/participants \
+  --march-id 1 \
+  --march-start-time "2025-03-15T08:30:00" \
+  --output .output/20251119 \
+  --merge-with .output/20251119/march_timeseries_data.csv
+```
+
+## Troubleshooting
+
+### No participants found
+
+**Error**: `No accelerometer files found in {data_dir}`
+
+**Solution**: Verify folder structure matches expected format with `acc.parquet` files in participant subdirectories.
+
+### Missing columns
+
+**Error**: `Missing required columns in {acc_file}. Required: ['X', 'Y', 'Z']`
+
+**Solution**: Ensure accelerometer files contain X, Y, Z columns for 3-axis accelerometer data.
+
+### No timestamp information
+
+**Error**: `No timestamp information found in {acc_file}`
+
+**Solution**: Accelerometer data must have a timestamp column or DatetimeIndex.
+
+### Filtering failed
+
+**Warning**: `High-pass filtering failed - Reason: Signal too short...`
+
+**Solution**: Accelerometer data segment may be too short. This typically happens with very small data files. Minimum required length depends on sampling rate and filter order.
+
+## Performance Considerations
+
+- **Processing time**: Approximately 5-10 seconds per participant (depends on data size)
+- **Memory usage**: Processes one participant at a time to minimize memory footprint
+- **Output size**: Step data is significantly smaller than raw accelerometer data
+
+## Integration with Dashboard
+
+The output CSV files can be imported into the march dashboard database using standard database import scripts. The format matches the schema expected by the march dashboard.
+
+## Interactive Analysis
+
+For manual inspection and parameter tuning, use the Jupyter notebook:
+
+```bash
+jupyter notebook notebooks/step_data_analysis.ipynb
+```
+
+The notebook provides:
+- Visual inspection of raw accelerometer data
+- Interactive step detection with parameter tuning
+- Comparison with watch data
+- Activity classification visualization
+- Detailed algorithm analysis
+
+## Related Scripts
+
+- `process_watch_data.py`: Process watch export files (CSV/GPX/TCX)
+- `manage_march_events.py`: Manage march events in database
+- `add_participants.py`: Add participants to database
+- `notebooks/step_data_analysis.ipynb`: Interactive step data analysis notebook
+
+## Algorithm References
+
+The step detection algorithm is based on:
+- FFT-based cadence detection
+- Peak detection with amplitude thresholds
+- Peak-to-noise ratio for quality assessment
+- Time-domain verification using filtered magnitude
+
+For more details, see the inline documentation in `process_step_data.py`.
