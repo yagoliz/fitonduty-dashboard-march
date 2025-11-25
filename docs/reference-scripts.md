@@ -232,11 +232,26 @@ Process watch export files (CSV/GPX/TCX) from Garmin, Suunto, Polar, etc. and ge
 
 ### Usage
 
+**Basic:**
 ```bash
 python scripts/process_watch_data.py \
   --data-dir /path/to/watch/exports \
   --march-id 1 \
   --march-start-time 2025-03-15T08:00:00 \
+  --output ./output
+```
+
+**With GPS Trimming (Recommended):**
+```bash
+python scripts/process_watch_data.py \
+  --data-dir /path/to/watch/exports \
+  --march-id 1 \
+  --march-start-time 2025-03-15T08:00:00 \
+  --start-lat 1.234567 \
+  --start-lon 103.654321 \
+  --end-lat 1.345678 \
+  --end-lon 103.765432 \
+  --gps-tolerance 50 \
   --output ./output
 ```
 
@@ -248,6 +263,11 @@ python scripts/process_watch_data.py \
 | `--march-id INT` | Yes | March event ID |
 | `--march-start-time TIME` | Yes | March start time (ISO format: YYYY-MM-DDTHH:MM:SS) |
 | `--output DIR` | Yes | Output directory for CSV files |
+| `--start-lat FLOAT` | No | Start point latitude for GPS trimming |
+| `--start-lon FLOAT` | No | Start point longitude for GPS trimming |
+| `--end-lat FLOAT` | No | End point latitude for GPS trimming |
+| `--end-lon FLOAT` | No | End point longitude for GPS trimming |
+| `--gps-tolerance FLOAT` | No | GPS tolerance in meters for detecting coordinate crossings (default: 50.0) |
 
 ### Input Files
 
@@ -267,13 +287,16 @@ Generates:
 - `march_hr_zones.csv` - Heart rate zone distributions
 - `march_timeseries_data.csv` - Time-series physiological data
 - `march_gps_positions.csv` - GPS tracks (if GPX files present)
+- `gps_crossing_times.json` - GPS crossing times (if GPS trimming used, for step processing)
 
 ### Features
 
+- **GPS-based data trimming** - Trims all data to actual march time using start/end coordinates
 - Handles multiple file formats (summary-only, time-series, combined)
 - Merges multiple activities per participant
 - Calculates speed from GPS or cadence
 - Generates HR zones and movement speed distributions
+- Outputs crossing times for use by step processor
 
 ### Example
 

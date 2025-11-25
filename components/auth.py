@@ -15,16 +15,12 @@ def create_login_form(debug: bool = False):
     debug_info = dbc.Alert(
         [
             html.H6(
-                [html.I(className="fas fa-info-circle me-2"), "Test Credentials"],
+                [html.I(className="fas fa-info-circle me-2"), "Development Dashboard"],
                 className="alert-heading",
             ),
             html.P(
                 [
-                    html.Strong("Admin: "),
-                    "admin / test123",
-                    html.Br(),
-                    html.Strong("Participants: "),
-                    "participant1-4 / test123",
+                    "You shouldn't see this in production!",
                 ],
                 className="mb-0",
             ),

@@ -649,8 +649,8 @@ def main():
             if timeseries_df is not None:
                 total_loaded += load_march_timeseries_data(conn, timeseries_df, args.march_id)
 
-            # if gps_df is not None:
-            #     total_loaded += load_march_gps_positions(conn, gps_df, args.march_id)
+            if gps_df is not None:
+                total_loaded += load_march_gps_positions(conn, gps_df, args.march_id)
 
             print(f"\n✅ Successfully loaded {total_loaded} total records!")
             print(f"\nMarch {args.march_id} data has been updated.")

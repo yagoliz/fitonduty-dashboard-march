@@ -1,3 +1,4 @@
+import json
 import numpy as np
 import pandas as pd
 from scipy.signal import find_peaks, sosfiltfilt, butter
@@ -733,7 +734,8 @@ class AccelerometerStepProcessor:
     """Process accelerometer data to compute steps for multiple participants"""
 
     def __init__(self, data_dir: Path, march_id: int, window_size: int = 8,
-                 march_start_time: Optional[datetime] = None):
+                 march_start_time: Optional[datetime] = None,
+                 gps_crossing_times: Optional[dict] = None):
         """
         Initialize the processor
 
@@ -747,11 +749,15 @@ class AccelerometerStepProcessor:
             Window size in seconds for step computation (default: 8)
         march_start_time : Optional[datetime]
             March start time for timestamp alignment
+        gps_crossing_times : Optional[dict]
+            Dictionary mapping participant IDs to GPS crossing times
+            Format: {'participant_id': {'start': datetime_string, 'end': datetime_string}}
         """
         self.data_dir = Path(data_dir)
         self.march_id = march_id
         self.window_size = window_size
         self.march_start_time = march_start_time
+        self.gps_crossing_times = gps_crossing_times or {}
 
         if not self.data_dir.exists():
             raise FileNotFoundError(f"Data directory not found: {data_dir}")
@@ -834,8 +840,36 @@ class AccelerometerStepProcessor:
             if 'timestamp' not in df_acc.columns:
                 df_acc = df_acc.reset_index()
 
-            # Remove unnecessary rows if march_start_time is specified
-            if self.march_start_time is not None:
+            # IMPORTANT: Trim data using GPS crossing times FIRST (if available)
+            if participant_id in self.gps_crossing_times:
+                crossing_times = self.gps_crossing_times[participant_id]
+                original_len = len(df_acc)
+
+                # Parse start time if available
+                if 'start' in crossing_times:
+                    start_time = pd.to_datetime(crossing_times['start'])
+                    df_acc = df_acc[df_acc['Time'] >= start_time]
+                    logger.info(f"{participant_id}: Trimmed to GPS start time {start_time}")
+
+                # Parse end time if available
+                if 'end' in crossing_times:
+                    end_time = pd.to_datetime(crossing_times['end'])
+                    df_acc = df_acc[df_acc['Time'] <= end_time]
+                    logger.info(f"{participant_id}: Trimmed to GPS end time {end_time}")
+
+                trimmed_len = len(df_acc)
+                if trimmed_len < original_len:
+                    logger.info(
+                        f"{participant_id}: GPS trimming removed {original_len - trimmed_len} rows "
+                        f"({original_len} -> {trimmed_len})"
+                    )
+
+                if df_acc.empty:
+                    logger.warning(f"No data after GPS trimming for {participant_id}")
+                    return None
+
+            # Remove unnecessary rows if march_start_time is specified (fallback if no GPS trimming)
+            elif self.march_start_time is not None:
                 df_acc = df_acc[df_acc['Time'] >= self.march_start_time]
                 if df_acc.empty:
                     logger.warning(f"No data after march start time for {participant_id}")
@@ -1026,6 +1060,11 @@ Examples:
     )
 
     parser.add_argument(
+        '--gps-trim-file',
+        help='JSON file with GPS crossing times (output from process_watch_data.py)'
+    )
+
+    parser.add_argument(
         '--output',
         default='./output',
         help='Output directory for CSV files (default: ./output)'
@@ -1043,13 +1082,28 @@ Examples:
             logger.error(f"Invalid march start time format: {args.march_start_time}")
             sys.exit(1)
 
+    # Load GPS crossing times if provided
+    gps_crossing_times = None
+    if args.gps_trim_file:
+        try:
+            with open(args.gps_trim_file, 'r') as f:
+                gps_crossing_times = json.load(f)
+            logger.info(f"Loaded GPS crossing times for {len(gps_crossing_times)} participants from {args.gps_trim_file}")
+        except FileNotFoundError:
+            logger.error(f"GPS trim file not found: {args.gps_trim_file}")
+            sys.exit(1)
+        except json.JSONDecodeError as e:
+            logger.error(f"Invalid JSON in GPS trim file: {e}")
+            sys.exit(1)
+
     try:
         # Create processor
         processor = AccelerometerStepProcessor(
             data_dir=args.data_dir,
             march_id=args.march_id,
             window_size=args.window_size,
-            march_start_time=march_start_time
+            march_start_time=march_start_time,
+            gps_crossing_times=gps_crossing_times
         )
 
         # Process all participants

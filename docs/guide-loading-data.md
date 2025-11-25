@@ -66,12 +66,40 @@ python scripts/process_watch_data.py \
   --output ./output/march_alpha
 ```
 
+### GPS-Based Trimming (Recommended)
+
+If you know the start/end GPS coordinates of the march, you can trim all data to only include the actual march time:
+
+```bash
+python scripts/process_watch_data.py \
+  --data-dir march_data/march_alpha_2025_03_15 \
+  --march-id 1 \
+  --march-start-time 2025-03-15T08:00:00 \
+  --start-lat 1.234567 \
+  --start-lon 103.654321 \
+  --end-lat 1.345678 \
+  --end-lon 103.765432 \
+  --gps-tolerance 50 \
+  --output ./output/march_alpha
+```
+
+**Benefits of GPS Trimming:**
+- Removes data from before march started (e.g., waiting at start point)
+- Removes data after march ended (e.g., resting at end point)
+- Ensures all metrics are calculated only on actual march data
+- Generates `gps_crossing_times.json` for use by step processing
+
 ### Parameters
 
 - `--data-dir`: Directory containing watch export files
 - `--march-id`: Database ID of the march event
 - `--march-start-time`: March start time in ISO format (YYYY-MM-DDTHH:MM:SS)
 - `--output`: Output directory for processed CSV files
+- `--start-lat`: (Optional) Start point latitude for GPS trimming
+- `--start-lon`: (Optional) Start point longitude for GPS trimming
+- `--end-lat`: (Optional) End point latitude for GPS trimming
+- `--end-lon`: (Optional) End point longitude for GPS trimming
+- `--gps-tolerance`: (Optional) GPS tolerance in meters for detecting crossings (default: 50m)
 
 ### What It Does
 
@@ -88,9 +116,11 @@ The script generates:
 - `march_hr_zones.csv` - Heart rate zone distributions
 - `march_timeseries_data.csv` - Time-series physiological data
 - `march_gps_positions.csv` - GPS tracks (if GPX files present)
+- `gps_crossing_times.json` - GPS crossing times (if GPS trimming used, for step processing)
 
 ### Example Output
 
+**Without GPS Trimming:**
 ```
 Processing participant: SM001
   Loaded SM001.CSV: 5400 rows
@@ -101,6 +131,27 @@ Processing participant: SM001
   Successfully processed SM001 (150 min march, 1800 GPS points)
 
 Processed 4 participants
+Output saved to ./output/march_alpha
+```
+
+**With GPS Trimming:**
+```
+GPS start trimming point: 1.234567, 103.654321
+GPS end trimming point: 1.345678, 103.765432
+GPS trimming tolerance: 50.0m
+
+Processing participant: SM001
+  SM001: Finding GPS crossing times...
+  SM001: Start crossing at 2025-03-15 08:15:23 (distance: 28.3m from target)
+  SM001: End crossing at 2025-03-15 10:45:18 (distance: 35.7m from target)
+  SM001: Trimming GPS data using GPS crossing times
+  Trimmed GPS data: 1800 -> 1650 rows (150 rows removed)
+  SM001: Trimming CSV data using GPS crossing times
+  Trimmed CSV data: 5400 -> 4950 rows (450 rows removed)
+  Successfully processed SM001
+
+Processed 4 participants
+Saved GPS crossing times for 4 participants to ./output/march_alpha/gps_crossing_times.json
 Output saved to ./output/march_alpha
 ```
 
