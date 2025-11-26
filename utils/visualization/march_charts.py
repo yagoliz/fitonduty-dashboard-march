@@ -503,15 +503,6 @@ def create_core_temp_timeline(
     # Convert minutes to hours
     time_hours = temp_data["timestamp_minutes"] / 60
 
-    # Add normal range reference band (36.5-37.5°C)
-    fig.add_hrect(
-        y0=36.5,
-        y1=37.5,
-        fillcolor="rgba(39,174,96,0.1)",
-        layer="below",
-        line_width=0,
-    )
-
     # Temperature trace - orange color scheme
     fig.add_trace(
         go.Scatter(
@@ -549,7 +540,7 @@ def create_core_temp_timeline(
         gridwidth=1,
         gridcolor="rgba(230,126,34,0.1)",
         automargin=True,
-        range=[35, 40],
+        range=[34.5, 40.5],
     )
 
     # Update layout with professional styling
