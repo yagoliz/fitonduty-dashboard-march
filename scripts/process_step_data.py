@@ -468,25 +468,14 @@ def fft_and_processing(df: pd.DataFrame, start: int, interval_seconds: int) -> f
     float
         The calculated steps per second based on the FFT results. Returns 0 if the conditions are not met.
     """
-    # Get the lenght of the dataframe
-    size, _ = df.shape
-
-    # Sample rate
-    frequency = 52
 
     # Get interval and window
-    interval = interval_seconds * frequency
+    interval = df.shape[0]
 
-    # Set the cut parameters for the series (to get the interval)
-    cut_start = start
-    cut_end = start + interval
-
-    if cut_end > size:
-        cut_start = size - interval
-        cut_end = size
+    frequency = 52
 
     # Transform to np array
-    mag = np.array(df["magnitude"][cut_start:cut_end])
+    mag = np.array(df["magnitude"])
 
     # Perform fft and return positive magnitudes and frequencies
     pos_fft_magnitudes, pos_frequencies = _perform_fft(mag)
@@ -497,7 +486,7 @@ def fft_and_processing(df: pd.DataFrame, start: int, interval_seconds: int) -> f
     )
 
     # Check if the values are in the right range to be considered as steps
-    if 10 > sps_fft >= 1.4 and amplitude_fft > 100 and ptn_ratio < 2 and cut_end < size:
+    if 10 > sps_fft >= 1.4 and amplitude_fft > 100 and ptn_ratio < 2:
         filtered_mag = lowpass_filter(mag, highcut=10, fs=frequency, order=2)
 
         # Get peaks and minima
@@ -567,11 +556,12 @@ def get_magnitudes(df_input: pd.DataFrame) -> pd.DataFrame:
 def get_steps(df: pd.DataFrame, interval_size: int = 8) -> pd.DataFrame:
     """
     Calculate steps from the magnitude data in a DataFrame.
+    Uses time-based grouping to handle gaps in the data properly.
 
     Parameters
     ----------
     df : pd.DataFrame
-        DataFrame containing accelerometer data with a 'magnitude' column.
+        DataFrame containing accelerometer data with a 'magnitude' column and 'time' column.
     interval_size : int
         Size of the interval in seconds for calculating steps.
 
@@ -581,37 +571,46 @@ def get_steps(df: pd.DataFrame, interval_size: int = 8) -> pd.DataFrame:
         DataFrame containing the calculated steps per second, sample, and time.
     """
 
-    size, _ = df.shape
-    i = 0
-
     # window to get the fft from
-    interval_seconds = 10
-    frequency = 52
-    i_steps_seconds = interval_size
+    min_samples = 3 * 52  # 3 seconds of data at 52 Hz
+
+    # Ensure time column is datetime
+    if not pd.api.types.is_datetime64_any_dtype(df['time']):
+        df['time'] = pd.to_datetime(df['time'])
+
+    # Set time as index for groupby
+    df_indexed = df.set_index('time').sort_index()
+
+    # Group by time intervals
+    grouped = df_indexed.groupby(pd.Grouper(freq=f'{interval_size}s'))
 
     # lists for steps
     sps_l = []
     sample_l = []
     time_l = []
 
-    # fill lists
-    while i < size:
-        # returning all relevant values
-        sps = fft_and_processing(df, i, interval_seconds)
+    # Process each time chunk
+    for timestamp, group in grouped:
+        # Use starting timestamp of the chunk
+        time_l.append(timestamp)
 
-        # lists for steps
+        if group.shape[0] < min_samples:
+            sps_l.append(0)
+            sample_l.append(0)
+            continue
+
+        # Reset index to get integer-based indexing for fft_and_processing
+        group_reset = group.reset_index()
+
+        # Use the first sample of the chunk (start = 0)
+        sps = fft_and_processing(group_reset, start=0, interval_seconds=interval_size)
+
+        # Use the middle sample index relative to original df
+        # (for backward compatibility with existing code)
+        mid_idx = len(group) // 2
+        sample_l.append(mid_idx)
+
         sps_l.append(sps)
-
-        # lists for other values
-        if i + (i_steps_seconds * frequency) / 2 > size:
-            sample_l.append(size - i)
-            time_l.append(df["time"][size - 1])
-        else:
-            sample_l.append(int(i + i_steps_seconds * frequency / 2 - 1))
-            time_l.append(df["time"][int(i + (i_steps_seconds * frequency) / 2 - 1)])
-
-        # adjust run parameters
-        i += frequency * i_steps_seconds
 
     df_steps = pd.DataFrame(
         {
