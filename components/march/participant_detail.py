@@ -13,7 +13,7 @@ from utils.database import (
 )
 from utils.visualization.march_charts import (
     create_cumulative_steps_chart,
-    create_hr_speed_timeline,
+    create_hr_timeline,
     create_pace_consistency_chart,
     create_performance_summary_card_data,
 )
@@ -162,9 +162,9 @@ def create_participant_detail_view(march_id: int, user_id: int) -> html.Div:
         summary_cards = create_performance_summary_cards(summary_data)
 
         # Create charts
-        hr_speed_chart = create_hr_speed_timeline(timeseries_data, "March Performance")
+        hr_speed_chart, hr_stats = create_hr_timeline(timeseries_data, "March Performance")
         steps_chart = create_cumulative_steps_chart(timeseries_data)
-        pace_chart = create_pace_consistency_chart(timeseries_data)
+        pace_chart, pace_stats = create_pace_consistency_chart(timeseries_data)
 
         # Get GPS track data
         gps_data = get_march_gps_track(march_id, user_id)
@@ -410,6 +410,58 @@ def create_participant_detail_view(march_id: int, user_id: int) -> html.Div:
                                         ),
                                         dbc.CardBody(
                                             [
+                                                # HR statistics badges
+                                                (
+                                                    html.Div(
+                                                        [
+                                                            (
+                                                                dbc.Badge(
+                                                                    [
+                                                                        html.I(
+                                                                            className="fas fa-chart-line me-1"
+                                                                        ),
+                                                                        f"Avg: {hr_stats['avg_hr']:.0f} bpm",
+                                                                    ],
+                                                                    color="primary",
+                                                                    className="me-2",
+                                                                )
+                                                                if hr_stats and hr_stats["avg_hr"]
+                                                                else None
+                                                            ),
+                                                            (
+                                                                dbc.Badge(
+                                                                    [
+                                                                        html.I(
+                                                                            className="fas fa-arrow-down me-1"
+                                                                        ),
+                                                                        f"Min: {hr_stats['min_hr']:.0f} bpm",
+                                                                    ],
+                                                                    color="info",
+                                                                    className="me-2",
+                                                                )
+                                                                if hr_stats and hr_stats["min_hr"]
+                                                                else None
+                                                            ),
+                                                            (
+                                                                dbc.Badge(
+                                                                    [
+                                                                        html.I(
+                                                                            className="fas fa-arrow-up me-1"
+                                                                        ),
+                                                                        f"Max: {hr_stats['max_hr']:.0f} bpm",
+                                                                    ],
+                                                                    color="danger",
+                                                                )
+                                                                if hr_stats and hr_stats["max_hr"]
+                                                                else None
+                                                            ),
+                                                        ],
+                                                        className="mb-3 d-flex flex-wrap gap-2",
+                                                    )
+                                                    if hr_stats
+                                                    else None
+                                                ),
+                                                # Chart
                                                 dcc.Graph(
                                                     figure=hr_speed_chart,
                                                     config={"displayModeBar": False},
@@ -479,6 +531,46 @@ def create_participant_detail_view(march_id: int, user_id: int) -> html.Div:
                                         ),
                                         dbc.CardBody(
                                             [
+                                                # Pace statistics badges
+                                                (
+                                                    html.Div(
+                                                        [
+                                                            (
+                                                                dbc.Badge(
+                                                                    [
+                                                                        html.I(
+                                                                            className="fas fa-chart-line me-1"
+                                                                        ),
+                                                                        f"Avg: {pace_stats['avg_pace']:.1f} km/h",
+                                                                    ],
+                                                                    color="primary",
+                                                                    className="me-2",
+                                                                )
+                                                                if pace_stats
+                                                                and pace_stats["avg_pace"]
+                                                                else None
+                                                            ),
+                                                            (
+                                                                dbc.Badge(
+                                                                    [
+                                                                        html.I(
+                                                                            className="fas fa-arrow-up me-1"
+                                                                        ),
+                                                                        f"Max: {pace_stats['max_pace']:.1f} km/h",
+                                                                    ],
+                                                                    color="success",
+                                                                )
+                                                                if pace_stats
+                                                                and pace_stats["max_pace"]
+                                                                else None
+                                                            ),
+                                                        ],
+                                                        className="mb-3 d-flex flex-wrap gap-2",
+                                                    )
+                                                    if pace_stats
+                                                    else None
+                                                ),
+                                                # Chart
                                                 dcc.Graph(
                                                     figure=pace_chart,
                                                     config={"displayModeBar": False},

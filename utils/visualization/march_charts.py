@@ -7,10 +7,20 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 
-def create_hr_speed_timeline(
+def create_hr_timeline(
     timeseries_data: pd.DataFrame, participant_name: str = "Participant"
-) -> go.Figure:
-    """Create dual-axis timeline showing HR and speed progression during march"""
+) -> tuple[go.Figure, dict]:
+    """Create dual-axis timeline showing HR and speed progression during march
+
+    Returns:
+        Tuple of (Plotly Figure object, dict with HR statistics)
+    """
+
+    empty_stats = {
+        "avg_hr": None,
+        "min_hr": None,
+        "max_hr": None,
+    }
 
     if timeseries_data.empty:
         # Return empty figure with message
@@ -26,10 +36,28 @@ def create_hr_speed_timeline(
             showarrow=False,
             font=dict(size=16, color="gray"),
         )
-        return fig
+        return fig, empty_stats
+    
+    # Rolling 5-point average for hr
+    rolling_avg = timeseries_data["heart_rate"].rolling(window=5, center=True).mean()
+
+    # Calculate HR statistics
+    hr_data = rolling_avg.dropna()
+    if not hr_data.empty:
+        avg_hr = hr_data.mean()
+        min_hr = hr_data.min()
+        max_hr = hr_data.max()
+        stats = {
+            "avg_hr": avg_hr,
+            "min_hr": min_hr,
+            "max_hr": max_hr,
+        }
+    else:
+        avg_hr = None
+        stats = empty_stats
 
     # Create subplot with secondary y-axis
-    fig = make_subplots(rows=1, cols=1)
+    fig = go.Figure()
 
     # Convert minutes to hours
     time_hours = timeseries_data["timestamp_minutes"] / 60
@@ -38,7 +66,7 @@ def create_hr_speed_timeline(
     fig.add_trace(
         go.Scatter(
             x=time_hours,
-            y=timeseries_data["heart_rate"],
+            y=rolling_avg,
             mode="lines+markers",
             name="Heart Rate",
             line=dict(color="#2c3e50", width=3),
@@ -52,19 +80,28 @@ def create_hr_speed_timeline(
         title_text="Time (hours)", showgrid=True, gridwidth=1, gridcolor="rgba(128,128,128,0.2)"
     )
 
+    # Add average line if we have valid HR data
+    if avg_hr is not None:
+        fig.add_hline(
+            y=avg_hr,
+            line_dash="dash",
+            line_color="#f39c12",
+            line_width=4,
+        )
+
     # Update y-axes
     fig.update_yaxes(
         title_text="Heart Rate (bpm)",
-        secondary_y=False,
         showgrid=True,
         gridwidth=1,
         gridcolor="rgba(231,76,60,0.1)",
         automargin=True,
+        range=[40, 200],
     )
 
     # Update layout with professional styling
     fig.update_layout(
-        height=350,
+        height=300,
         hovermode="x unified",
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
         margin=dict(l=20, r=20, t=30, b=40),
@@ -76,7 +113,7 @@ def create_hr_speed_timeline(
     # Enable responsive sizing
     fig.update_layout(autosize=True)
 
-    return fig
+    return fig, stats
 
 
 def create_hr_zones_chart(hr_zones_data: dict[str, float]) -> go.Figure:
@@ -297,8 +334,17 @@ def create_cumulative_steps_chart(timeseries_data: pd.DataFrame) -> go.Figure:
     return fig
 
 
-def create_pace_consistency_chart(timeseries_data: pd.DataFrame) -> go.Figure:
-    """Create chart showing pace consistency and variation during march"""
+def create_pace_consistency_chart(timeseries_data: pd.DataFrame) -> tuple[go.Figure, dict]:
+    """Create chart showing pace consistency and variation during march
+
+    Returns:
+        Tuple of (Plotly Figure object, dict with pace statistics)
+    """
+
+    empty_stats = {
+        "avg_pace": None,
+        "max_pace": None,
+    }
 
     if timeseries_data.empty or "estimated_speed_kmh" not in timeseries_data.columns:
         fig = go.Figure()
@@ -313,16 +359,28 @@ def create_pace_consistency_chart(timeseries_data: pd.DataFrame) -> go.Figure:
             showarrow=False,
             font=dict(size=16, color="gray"),
         )
-        return fig
-
-    speeds = timeseries_data["estimated_speed_kmh"]
-    avg_speed = speeds.mean()
+        return fig, empty_stats
 
     # Convert minutes to hours
     time_hours = timeseries_data["timestamp_minutes"] / 60
 
     # Calculate rolling average (5-point window)
-    rolling_avg = speeds.rolling(window=5, center=True).mean()
+    rolling_avg = timeseries_data["estimated_speed_kmh"].rolling(window=5, center=True).mean()
+
+    # Calculate overall average speed with the rolling average
+    speeds = rolling_avg.dropna()
+
+    # Calculate pace statistics
+    if not speeds.empty:
+        avg_speed = speeds.mean()
+        max_speed = speeds.max()
+        stats = {
+            "avg_pace": avg_speed,
+            "max_pace": max_speed,
+        }
+    else:
+        avg_speed = None
+        stats = empty_stats
 
     fig = go.Figure()
 
@@ -338,22 +396,19 @@ def create_pace_consistency_chart(timeseries_data: pd.DataFrame) -> go.Figure:
         )
     )
 
-    # Add overall average line - accent color
-    fig.add_hline(
-        y=avg_speed,
-        line_dash="dash",
-        line_color="#f39c12",
-        line_width=4,
-        annotation_text=f"March Average: {avg_speed:.1f} km/h",
-        annotation_showarrow=True,
-        annotation_yshift=10,
-        annotation_position="top right",
-    )
+    # Add overall average line - accent color (only if we have valid data)
+    if avg_speed is not None:
+        fig.add_hline(
+            y=avg_speed,
+            line_dash="dash",
+            line_color="#f39c12",
+            line_width=4,
+        )
 
     fig.update_layout(
         xaxis_title="Time (hours)",
         yaxis_title="Speed (km/h)",
-        height=350,
+        height=300,
         margin=dict(l=20, r=20, t=30, b=40),
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
         plot_bgcolor="rgba(0,0,0,0)",
@@ -363,9 +418,9 @@ def create_pace_consistency_chart(timeseries_data: pd.DataFrame) -> go.Figure:
     )
 
     fig.update_xaxes(showgrid=True, gridwidth=1, gridcolor="rgba(128,128,128,0.2)")
-    fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor="rgba(128,128,128,0.2)", automargin=True)
+    fig.update_yaxes(showgrid=True, range=[-0.1,8.1], gridwidth=1, gridcolor="rgba(128,128,128,0.2)", automargin=True)
 
-    return fig
+    return fig, stats
 
 
 def create_performance_summary_card_data(summary_data: dict[str, Any]) -> dict[str, Any]:
