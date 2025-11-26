@@ -402,7 +402,7 @@ def create_participant_detail_view(march_id: int, user_id: int) -> html.Div:
                                                 html.H5(
                                                     [
                                                         html.I(className="fas fa-chart-line me-2"),
-                                                        "Heart Rate & Speed Timeline",
+                                                        "Heart Rate Timeline",
                                                     ],
                                                     className="mb-0 text-professional",
                                                 )

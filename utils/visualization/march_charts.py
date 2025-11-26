@@ -326,19 +326,6 @@ def create_pace_consistency_chart(timeseries_data: pd.DataFrame) -> go.Figure:
 
     fig = go.Figure()
 
-    # Add actual speed - lighter color
-    fig.add_trace(
-        go.Scatter(
-            x=time_hours,
-            y=speeds,
-            mode="lines",
-            name="Actual Speed",
-            line=dict(color="#95a5a6", width=2, dash="dot"),
-            opacity=0.8,
-            hovertemplate="<b>Time:</b> %{x:.2f} h<br><b>Speed:</b> %{y:.1f} km/h<extra></extra>",
-        )
-    )
-
     # Add rolling average - primary color
     fig.add_trace(
         go.Scatter(
@@ -356,7 +343,10 @@ def create_pace_consistency_chart(timeseries_data: pd.DataFrame) -> go.Figure:
         y=avg_speed,
         line_dash="dash",
         line_color="#f39c12",
+        line_width=4,
         annotation_text=f"March Average: {avg_speed:.1f} km/h",
+        annotation_showarrow=True,
+        annotation_yshift=10,
         annotation_position="top right",
     )
 
