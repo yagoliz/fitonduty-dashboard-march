@@ -239,11 +239,9 @@ class TemperatureProcessor:
         for df_temps in results:
             participant_id = df_temps["participant_id"].iloc[0]
 
-            # Prepare data for output
-            df_output = pd.DataFrame(
+            # Prepare data for output with timestamp
+            df_temp_with_time = pd.DataFrame(
                 {
-                    "march_id": self.march_id,
-                    "user_id": participant_id,
                     "timestamp": df_temps["Time"],
                     "skin_temp": df_temps["skin_temp"],
                     "heat_flux": df_temps["heat_flux"],
@@ -253,15 +251,43 @@ class TemperatureProcessor:
 
             # Calculate timestamp_minutes if march_start_time is provided
             if self.march_start_time is not None:
-                df_output["timestamp_minutes"] = (
-                    pd.to_datetime(df_output["timestamp"]) - self.march_start_time
+                df_temp_with_time["timestamp_minutes"] = (
+                    pd.to_datetime(df_temp_with_time["timestamp"]) - self.march_start_time
                 ).dt.total_seconds() / 60
             else:
                 # Use relative time from first timestamp
-                first_timestamp = pd.to_datetime(df_output["timestamp"].iloc[0])
-                df_output["timestamp_minutes"] = (
-                    pd.to_datetime(df_output["timestamp"]) - first_timestamp
+                first_timestamp = pd.to_datetime(df_temp_with_time["timestamp"].iloc[0])
+                df_temp_with_time["timestamp_minutes"] = (
+                    pd.to_datetime(df_temp_with_time["timestamp"]) - first_timestamp
                 ).dt.total_seconds() / 60
+
+            # Resample to 1-minute intervals to reduce data volume
+            df_resampled = (
+                df_temp_with_time.set_index("timestamp")
+                .resample("1min")
+                .agg(
+                    {
+                        "skin_temp": "mean",
+                        "heat_flux": "mean",
+                        "core_temp": "mean",
+                        "timestamp_minutes": "mean",
+                    }
+                )
+                .reset_index()
+            )
+
+            # Add march_id and user_id columns
+            df_output = pd.DataFrame(
+                {
+                    "march_id": self.march_id,
+                    "user_id": participant_id,
+                    "timestamp": df_resampled["timestamp"],
+                    "skin_temp": df_resampled["skin_temp"],
+                    "heat_flux": df_resampled["heat_flux"],
+                    "core_temp": df_resampled["core_temp"],
+                    "timestamp_minutes": df_resampled["timestamp_minutes"],
+                }
+            )
 
             all_data.append(df_output)
 
