@@ -82,6 +82,7 @@ CREATE TABLE IF NOT EXISTS march_health_metrics (
     avg_pace_kmh NUMERIC(4,2), -- Average pace during march
     effort_score NUMERIC(5,2), -- Calculated effort metric
     recovery_hr INTEGER, -- HR 10 mins post-march
+    avg_core_temp NUMERIC(4,2), -- Average core body temperature during march
     data_completeness NUMERIC(3,2), -- % of march with valid data
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE (march_id, user_id)
@@ -124,6 +125,7 @@ CREATE TABLE IF NOT EXISTS march_timeseries_data (
     estimated_speed_kmh NUMERIC(4,2), -- Estimated speed from movement algorithms
     cumulative_steps INTEGER,
     cumulative_distance_km NUMERIC(5,2),
+    core_temp NUMERIC(4,2), -- Core body temperature in Celsius
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE (march_id, user_id, timestamp_minutes)
 );

@@ -4,7 +4,6 @@ from typing import Any
 
 import pandas as pd
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 
 
 def create_hr_timeline(
@@ -37,7 +36,7 @@ def create_hr_timeline(
             font=dict(size=16, color="gray"),
         )
         return fig, empty_stats
-    
+
     # Rolling 5-point average for hr
     rolling_avg = timeseries_data["heart_rate"].rolling(window=5, center=True).mean()
 
@@ -423,6 +422,153 @@ def create_pace_consistency_chart(timeseries_data: pd.DataFrame) -> tuple[go.Fig
     return fig, stats
 
 
+def create_core_temp_timeline(
+    timeseries_data: pd.DataFrame, participant_name: str = "Participant"
+) -> tuple[go.Figure, dict]:
+    """Create timeline showing core body temperature progression during march
+
+    Args:
+        timeseries_data: DataFrame with 'timestamp_minutes' and 'core_temp' columns
+        participant_name: Name of participant for chart title
+
+    Returns:
+        Tuple of (Plotly Figure object, dict with temperature statistics)
+        Statistics dict contains: avg_temp, min_temp, max_temp
+    """
+
+    empty_stats = {
+        "avg_temp": None,
+        "min_temp": None,
+        "max_temp": None,
+    }
+
+    if timeseries_data.empty or "core_temp" not in timeseries_data.columns:
+        # Return empty figure with message
+        fig = go.Figure()
+        fig.add_annotation(
+            text="No core temperature data available",
+            xref="paper",
+            yref="paper",
+            x=0.5,
+            y=0.5,
+            xanchor="center",
+            yanchor="middle",
+            showarrow=False,
+            font=dict(size=16, color="gray"),
+            height=300,
+        )
+        return fig, empty_stats
+
+    # Filter out null values
+    temp_data = timeseries_data[timeseries_data["core_temp"].notna()].copy()
+
+    if temp_data.empty:
+        # Return empty figure with message
+        fig = go.Figure()
+        fig.add_annotation(
+            text="No core temperature data available",
+            xref="paper",
+            yref="paper",
+            x=0.5,
+            y=0.5,
+            xanchor="center",
+            yanchor="middle",
+            showarrow=False,
+            font=dict(size=16, color="gray"),
+            height=300,
+        )
+        return fig, empty_stats
+
+    # Rolling 5-point average for smoothing
+    rolling_avg = temp_data["core_temp"].rolling(window=5, center=True).mean()
+
+    # Calculate temperature statistics
+    temp_values = rolling_avg.dropna()
+    if not temp_values.empty:
+        avg_temp = temp_values.mean()
+        min_temp = temp_values.min()
+        max_temp = temp_values.max()
+        stats = {
+            "avg_temp": avg_temp,
+            "min_temp": min_temp,
+            "max_temp": max_temp,
+        }
+    else:
+        avg_temp = None
+        stats = empty_stats
+
+    # Create figure
+    fig = go.Figure()
+
+    # Convert minutes to hours
+    time_hours = temp_data["timestamp_minutes"] / 60
+
+    # Add normal range reference band (36.5-37.5°C)
+    fig.add_hrect(
+        y0=36.5,
+        y1=37.5,
+        fillcolor="rgba(39,174,96,0.1)",
+        layer="below",
+        line_width=0,
+    )
+
+    # Temperature trace - orange color scheme
+    fig.add_trace(
+        go.Scatter(
+            x=time_hours,
+            y=rolling_avg,
+            mode="lines+markers",
+            name="Core Temperature",
+            line=dict(color="#e67e22", width=3),
+            marker=dict(size=5, color="#e67e22"),
+            hovertemplate="<b>Time:</b> %{x:.2f} h<br><b>Temp:</b> %{y:.1f} °C<extra></extra>",
+        )
+    )
+
+    # Add average line if we have valid temp data
+    if avg_temp is not None:
+        fig.add_hline(
+            y=avg_temp,
+            line_dash="dash",
+            line_color="#f39c12",
+            line_width=4,
+        )
+
+    # Update x-axis
+    fig.update_xaxes(
+        title_text="Time (hours)",
+        showgrid=True,
+        gridwidth=1,
+        gridcolor="rgba(128,128,128,0.2)",
+    )
+
+    # Update y-axis
+    fig.update_yaxes(
+        title_text="Core Temperature (°C)",
+        showgrid=True,
+        gridwidth=1,
+        gridcolor="rgba(230,126,34,0.1)",
+        automargin=True,
+        range=[35, 40],
+    )
+
+    # Update layout with professional styling
+    fig.update_layout(
+        height=300,
+        hovermode="x unified",
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        margin=dict(l=20, r=20, t=30, b=40),
+        plot_bgcolor="rgba(0,0,0,0)",
+        paper_bgcolor="rgba(0,0,0,0)",
+        font=dict(family="system-ui, -apple-system, sans-serif", size=12, color="#212529"),
+    )
+
+    # Enable responsive sizing
+    fig.update_layout(autosize=True)
+
+    return fig, stats
+
+
 def create_performance_summary_card_data(summary_data: dict[str, Any]) -> dict[str, Any]:
     """Generate performance summary metrics for display cards"""
 
@@ -460,4 +606,5 @@ def create_performance_summary_card_data(summary_data: dict[str, Any]) -> dict[s
         "estimated_distance": f"{summary_data.get('estimated_distance_km', 0):.1f} km",
         "avg_hr": f"{summary_data.get('avg_hr', 0)} bpm" if summary_data.get("avg_hr") else "N/A",
         "max_hr": f"{summary_data.get('max_hr', 0)} bpm" if summary_data.get("max_hr") else "N/A",
+        "avg_core_temp": f"{summary_data.get('avg_core_temp', 0):.1f} °C" if summary_data.get("avg_core_temp") else "N/A",
     }

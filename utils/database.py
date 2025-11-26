@@ -201,7 +201,7 @@ def get_march_participants(march_id: int) -> pd.DataFrame:
 def get_participant_march_summary(march_id: int, user_id: int) -> dict | None:
     """Get detailed march summary for a specific participant"""
     query = """
-        SELECT 
+        SELECT
             me.name as march_name,
             me.date as march_date,
             me.distance_km as march_distance,
@@ -215,6 +215,7 @@ def get_participant_march_summary(march_id: int, user_id: int) -> dict | None:
             mhm.avg_pace_kmh,
             mhm.effort_score,
             mhm.recovery_hr,
+            mhm.avg_core_temp,
             mhm.data_completeness
         FROM march_events me
         JOIN march_participants mp ON me.id = mp.march_id
@@ -283,13 +284,14 @@ def get_participant_movement_speeds(march_id: int, user_id: int) -> dict | None:
 def get_march_timeseries_data(march_id: int, user_id: int) -> pd.DataFrame:
     """Get time-series physiological data for a participant during march"""
     query = """
-        SELECT 
+        SELECT
             timestamp_minutes,
             heart_rate,
             step_rate,
             estimated_speed_kmh,
             cumulative_steps,
-            cumulative_distance_km
+            cumulative_distance_km,
+            core_temp
         FROM march_timeseries_data
         WHERE march_id = :march_id AND user_id = :user_id
         ORDER BY timestamp_minutes

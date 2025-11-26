@@ -255,12 +255,12 @@ def load_march_health_metrics(conn, df, march_id):
                 INSERT INTO march_health_metrics (
                     march_id, user_id, avg_hr, max_hr, total_steps,
                     march_duration_minutes, estimated_distance_km, avg_pace_kmh,
-                    effort_score, recovery_hr, data_completeness
+                    effort_score, recovery_hr, avg_core_temp, data_completeness
                 )
                 VALUES (
                     :march_id, :user_id, :avg_hr, :max_hr, :total_steps,
                     :march_duration_minutes, :estimated_distance_km, :avg_pace_kmh,
-                    :effort_score, :recovery_hr, :data_completeness
+                    :effort_score, :recovery_hr, :avg_core_temp, :data_completeness
                 )
                 ON CONFLICT (march_id, user_id)
                 DO UPDATE SET
@@ -272,6 +272,7 @@ def load_march_health_metrics(conn, df, march_id):
                     avg_pace_kmh = EXCLUDED.avg_pace_kmh,
                     effort_score = EXCLUDED.effort_score,
                     recovery_hr = EXCLUDED.recovery_hr,
+                    avg_core_temp = EXCLUDED.avg_core_temp,
                     data_completeness = EXCLUDED.data_completeness
             """), {
                 'march_id': march_id,
@@ -284,6 +285,7 @@ def load_march_health_metrics(conn, df, march_id):
                 'avg_pace_kmh': to_python_type(row.get('avg_pace_kmh')),
                 'effort_score': to_python_type(row.get('effort_score')),
                 'recovery_hr': to_python_type(row.get('recovery_hr')),
+                'avg_core_temp': to_python_type(row.get('avg_core_temp')),
                 'data_completeness': to_python_type(row.get('data_completeness', 1.0))
             })
 
@@ -505,6 +507,63 @@ def load_march_gps_positions(conn, df, march_id):
     return loaded_count
 
 
+def load_march_core_temp_data(conn, df, march_id):
+    """Load march core temperature timeseries data"""
+    if df is None or df.empty:
+        return 0
+
+    print("\nLoading march core temperature data...")
+
+    loaded_count = 0
+    batch_size = 1000
+
+    # Prepare data for batch insert/update
+    records = []
+    for _, row in df.iterrows():
+        timestamp_val = to_python_type(row.get('timestamp_minutes', 0))
+        timestamp_minutes = int(round(timestamp_val)) if timestamp_val is not None else 0
+
+        records.append({
+            'march_id': march_id,
+            'user_id': int(row['user_id']),
+            'timestamp_minutes': timestamp_minutes,
+            'core_temp': to_decimal(row.get('core_temp'), 2, max_value=45.0)
+        })
+
+        # Insert in batches
+        if len(records) >= batch_size:
+            conn.execute(text("""
+                INSERT INTO march_timeseries_data (
+                    march_id, user_id, timestamp_minutes, core_temp
+                )
+                VALUES (
+                    :march_id, :user_id, :timestamp_minutes, :core_temp
+                )
+                ON CONFLICT (march_id, user_id, timestamp_minutes)
+                DO UPDATE SET core_temp = EXCLUDED.core_temp
+            """), records)
+            loaded_count += len(records)
+            print(f"  ... loaded {loaded_count} temperature records")
+            records = []
+
+    # Insert remaining records
+    if records:
+        conn.execute(text("""
+            INSERT INTO march_timeseries_data (
+                march_id, user_id, timestamp_minutes, core_temp
+            )
+            VALUES (
+                :march_id, :user_id, :timestamp_minutes, :core_temp
+            )
+            ON CONFLICT (march_id, user_id, timestamp_minutes)
+            DO UPDATE SET core_temp = EXCLUDED.core_temp
+        """), records)
+        loaded_count += len(records)
+
+    print(f"  ✓ Loaded {loaded_count} temperature records")
+    return loaded_count
+
+
 def parse_custom_mapping(mapping_str):
     """
     Parse custom mapping string like "SM001:participant1,SM002:participant2"
@@ -599,8 +658,9 @@ def main():
     hr_zones_df = load_csv_file(data_dir, 'march_hr_zones.csv')
     timeseries_df = load_csv_file(data_dir, 'march_timeseries_data.csv')
     gps_df = load_csv_file(data_dir, 'march_gps_positions.csv')
+    temp_df = load_csv_file(data_dir, 'march_temp_data.csv')
 
-    if all(df is None for df in [metrics_df, hr_zones_df, timeseries_df, gps_df]):
+    if all(df is None for df in [metrics_df, hr_zones_df, timeseries_df, gps_df, temp_df]):
         print("\n❌ No CSV files found or all files are empty")
         sys.exit(1)
 
@@ -614,6 +674,8 @@ def main():
         timeseries_df = map_participant_ids(timeseries_df, user_mapping)
     if gps_df is not None:
         gps_df = map_participant_ids(gps_df, user_mapping)
+    if temp_df is not None:
+        temp_df = map_participant_ids(temp_df, user_mapping)
 
     if args.dry_run:
         print("\n🔍 DRY RUN - No changes will be made")
@@ -626,6 +688,8 @@ def main():
             print(f"  - {len(timeseries_df)} timeseries records")
         if gps_df is not None:
             print(f"  - {len(gps_df)} GPS position records")
+        if temp_df is not None:
+            print(f"  - {len(temp_df)} core temperature records")
         sys.exit(0)
 
     # Confirm before proceeding
@@ -651,6 +715,9 @@ def main():
 
             if gps_df is not None:
                 total_loaded += load_march_gps_positions(conn, gps_df, args.march_id)
+
+            if temp_df is not None:
+                total_loaded += load_march_core_temp_data(conn, temp_df, args.march_id)
 
             print(f"\n✅ Successfully loaded {total_loaded} total records!")
             print(f"\nMarch {args.march_id} data has been updated.")

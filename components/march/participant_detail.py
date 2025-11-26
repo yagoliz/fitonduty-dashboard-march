@@ -12,6 +12,7 @@ from utils.database import (
     get_participant_march_summary,
 )
 from utils.visualization.march_charts import (
+    create_core_temp_timeline,
     create_cumulative_steps_chart,
     create_hr_timeline,
     create_pace_consistency_chart,
@@ -165,6 +166,7 @@ def create_participant_detail_view(march_id: int, user_id: int) -> html.Div:
         hr_speed_chart, hr_stats = create_hr_timeline(timeseries_data, "March Performance")
         steps_chart = create_cumulative_steps_chart(timeseries_data)
         pace_chart, pace_stats = create_pace_consistency_chart(timeseries_data)
+        temp_chart, temp_stats = create_core_temp_timeline(timeseries_data, participant_name)
 
         # Get GPS track data
         gps_data = get_march_gps_track(march_id, user_id)
@@ -390,16 +392,17 @@ def create_participant_detail_view(march_id: int, user_id: int) -> html.Div:
                     if elevation_chart
                     else html.Div()
                 ),
-                # Main Timeline Chart
+                # Heart Rate and Temperature Timeline Charts
                 dbc.Row(
                     [
+                        # Heart Rate Timeline
                         dbc.Col(
                             [
                                 dbc.Card(
                                     [
                                         dbc.CardHeader(
                                             [
-                                                html.H5(
+                                                html.H6(
                                                     [
                                                         html.I(className="fas fa-chart-line me-2"),
                                                         "Heart Rate Timeline",
@@ -473,7 +476,91 @@ def create_participant_detail_view(march_id: int, user_id: int) -> html.Div:
                                 )
                             ],
                             width=12,
-                        )
+                            lg=6,
+                        ),
+                        # Core Body Temperature Timeline
+                        dbc.Col(
+                            [
+                                dbc.Card(
+                                    [
+                                        dbc.CardHeader(
+                                            [
+                                                html.H6(
+                                                    [
+                                                        html.I(className="fas fa-thermometer-half me-2"),
+                                                        "Core Body Temperature",
+                                                    ],
+                                                    className="mb-0 text-professional",
+                                                )
+                                            ]
+                                        ),
+                                        dbc.CardBody(
+                                            [
+                                                # Temperature statistics badges
+                                                (
+                                                    html.Div(
+                                                        [
+                                                            (
+                                                                dbc.Badge(
+                                                                    [
+                                                                        html.I(
+                                                                            className="fas fa-chart-line me-1"
+                                                                        ),
+                                                                        f"Avg: {temp_stats['avg_temp']:.1f} °C",
+                                                                    ],
+                                                                    color="warning",
+                                                                    className="me-2",
+                                                                )
+                                                                if temp_stats and temp_stats["avg_temp"]
+                                                                else None
+                                                            ),
+                                                            (
+                                                                dbc.Badge(
+                                                                    [
+                                                                        html.I(
+                                                                            className="fas fa-arrow-down me-1"
+                                                                        ),
+                                                                        f"Min: {temp_stats['min_temp']:.1f} °C",
+                                                                    ],
+                                                                    color="info",
+                                                                    className="me-2",
+                                                                )
+                                                                if temp_stats and temp_stats["min_temp"]
+                                                                else None
+                                                            ),
+                                                            (
+                                                                dbc.Badge(
+                                                                    [
+                                                                        html.I(
+                                                                            className="fas fa-arrow-up me-1"
+                                                                        ),
+                                                                        f"Max: {temp_stats['max_temp']:.1f} °C",
+                                                                    ],
+                                                                    color="danger",
+                                                                )
+                                                                if temp_stats and temp_stats["max_temp"]
+                                                                else None
+                                                            ),
+                                                        ],
+                                                        className="mb-3 d-flex flex-wrap gap-2",
+                                                    )
+                                                    if temp_stats
+                                                    else None
+                                                ),
+                                                # Chart
+                                                dcc.Graph(
+                                                    figure=temp_chart,
+                                                    config={"displayModeBar": False},
+                                                ),
+                                            ]
+                                        ),
+                                    ],
+                                    className="chart-container",
+                                )
+                            ],
+                            width=12,
+                            lg=6,
+                        ),
                     ],
                     className="mb-4",
                 ),
