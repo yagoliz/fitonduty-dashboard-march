@@ -462,14 +462,14 @@ def _create_personal_performance_card(user_summary, leaderboard_df=None, detail_
 
     kpis = dbc.Row([
         dbc.Col(html.Div([
-            html.I(className="fas fa-tachometer-alt me-2"),
+            html.I(className="fas fa-running me-2"),
             html.Span(fmt(pace, "{:.1f} km/h"), className="kpi-value"),
-            html.Div("Avg Pace", className="kpi-label")
+            html.Div("Pace", className="kpi-label")
         ], className="kpi-chip")),
         dbc.Col(html.Div([
             html.I(className="fas fa-heartbeat me-2"),
             html.Span(fmt(avg_hr, "{} bpm"), className="kpi-value"),
-            html.Div("Avg HR", className="kpi-label")
+            html.Div("Heart Rate", className="kpi-label")
         ], className="kpi-chip")),
         dbc.Col(html.Div([
             html.I(className="fas fa-walking me-2"),
@@ -478,13 +478,13 @@ def _create_personal_performance_card(user_summary, leaderboard_df=None, detail_
         ], className="kpi-chip")),
         dbc.Col(html.Div([
             html.I(className="fas fa-clock me-2"),
-            html.Span(fmt(finish_time, "{} min"), className="kpi-value"),
-            html.Div("Finish Time", className="kpi-label")
+            html.Span(fmt(finish_time/60, "{:.2f} h"), className="kpi-value"),
+            html.Div("Time", className="kpi-label")
         ], className="kpi-chip")),
         dbc.Col(html.Div([
             html.I(className="fas fa-thermometer-half me-2"),
             html.Span(fmt(avg_core_temp, "{:.1f} °C"), className="kpi-value"),
-            html.Div("Avg Core Temp", className="kpi-label")
+            html.Div("Core Temp", className="kpi-label")
         ], className="kpi-chip"))
     ], className="g-2 mb-2 row-cols-2 row-cols-sm-3 row-cols-md-5")
 
