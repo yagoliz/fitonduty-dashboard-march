@@ -1,0 +1,151 @@
+---
+- name: Create march database working directory
+  file:
+    path: "{{ march_working_dir }}"
+    state: directory
+    owner: postgres
+    group: postgres
+    mode: '0755'
+
+- name: Create march database scripts directory
+  file:
+    path: "{{ march_working_dir }}/scripts"
+    state: directory
+    owner: postgres
+    group: postgres
+    mode: '0755'
+
+- name: Install system Python dependencies
+  apt:
+    name:
+      - python3-venv
+      - python3-pip
+      - python3-dev
+    state: present
+    update_cache: yes
+
+- name: Create virtual environment for march database
+  command: python3 -m venv "{{ march_venv_dir }}"
+  args:
+    creates: "{{ march_venv_dir }}/bin/python"
+  become_user: postgres
+
+- name: Install Python dependencies in virtual environment
+  pip:
+    name:
+      - sqlalchemy>=2.0.0
+      - psycopg2-binary
+      - werkzeug
+    virtualenv: "{{ march_venv_dir }}"
+    state: present
+
+- name: Copy database schema file
+  copy:
+    src: "{{ playbook_dir }}/../../src/database/schema.sql"
+    dest: "{{ march_working_dir }}/scripts/schema.sql"
+    owner: postgres
+    group: postgres
+    mode: '0644'
+
+- name: Copy schema-only creation script
+  copy:
+    src: "{{ playbook_dir }}/../../src/database/management/create_schema.py"
+    dest: "{{ march_working_dir }}/scripts/create_schema.py"
+    owner: postgres
+    group: postgres
+    mode: '0755'
+
+- name: Copy database seeding script (with mock data)
+  copy:
+    src: "{{ playbook_dir }}/../../src/database/management/seed_database.py"
+    dest: "{{ march_working_dir }}/scripts/seed_database.py"
+    owner: postgres
+    group: postgres
+    mode: '0755'
+  when: march_seed_mode == 'mock'
+
+- name: Check if march database exists
+  postgresql_query:
+    login_host: "{{ database_host }}"
+    login_port: "{{ database_port }}"
+    login_user: "{{ postgres_user }}"
+    login_password: "{{ vault_postgres_password }}"
+    login_db: postgres
+    query: "SELECT 1 FROM pg_database WHERE datname = %s"
+    positional_args:
+      - "{{ march_db_name }}"
+  register: db_exists
+  become_user: postgres
+
+- name: Create march database
+  postgresql_db:
+    login_host: "{{ database_host }}"
+    login_port: "{{ database_port }}"
+    login_user: "{{ postgres_user }}"
+    login_password: "{{ vault_postgres_password }}"
+    name: "{{ march_db_name }}"
+    state: present
+  become_user: postgres
+  when: db_exists.rowcount == 0
+
+- name: Create march database user
+  postgresql_user:
+    login_host: "{{ database_host }}"
+    login_port: "{{ database_port }}"
+    login_user: "{{ postgres_user }}"
+    login_password: "{{ vault_postgres_password }}"
+    name: "{{ march_db_user }}"
+    password: "{{ vault_march_db_password }}"
+    login_db: "{{ march_db_name }}"
+    state: present
+  become_user: postgres
+
+- name: Add march database entry to pg_hba.conf (before reject line)
+  blockinfile:
+    path: "/etc/postgresql/{{ postgresql_version | default('16') }}/main/pg_hba.conf"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - March Dashboard"
+    insertbefore: "^host.*all.*all.*0\\.0\\.0\\.0/0.*reject"
+    block: |
+      # Allow march dashboard connections
+      host    {{ march_db_name }}    {{ march_db_user }}    0.0.0.0/0    scram-sha-256
+    backup: yes
+  notify: restart postgresql
+
+- name: Create database schema only (no seed data)
+  shell: |
+    export DATABASE_URL="postgresql://{{ postgres_user }}:{{ vault_postgres_password }}@{{ database_host }}:{{ database_port }}/{{ march_db_name }}"
+    {{ march_venv_dir }}/bin/python {{ march_working_dir }}/scripts/create_schema.py
+  become_user: postgres
+  register: schema_result
+  changed_when: "'Tables created successfully' in schema_result.stdout"
+  when: march_seed_mode == 'none'
+
+- name: Create database schema with mock data (development/testing)
+  shell: |
+    export DATABASE_URL="postgresql://{{ postgres_user }}:{{ vault_postgres_password }}@{{ database_host }}:{{ database_port }}/{{ march_db_name }}"
+    {{ march_venv_dir }}/bin/python {{ march_working_dir }}/scripts/seed_database.py
+  become_user: postgres
+  register: seed_result
+  changed_when: "'Tables created successfully' in seed_result.stdout"
+  when: march_seed_mode == 'mock'
+
+- name: Grant permissions to march database user
+  postgresql_query:
+    login_host: "{{ database_host }}"
+    login_port: "{{ database_port }}"
+    login_user: "{{ postgres_user }}"
+    login_password: "{{ vault_postgres_password }}"
+    login_db: "{{ march_db_name }}"
+    query: |
+      GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO {{ march_db_user }};
+      GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO {{ march_db_user }};
+      GRANT USAGE ON SCHEMA public TO {{ march_db_user }};
+  become_user: postgres
+
+- name: Create database connection info file
+  template:
+    src: database_info.txt.j2
+    dest: "{{ march_working_dir }}/database_info.txt"
+    owner: postgres
+    group: postgres
+    mode: '0600'

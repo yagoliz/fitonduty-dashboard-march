@@ -167,7 +167,7 @@ class TestDatabaseIntegration:
     @pytest.mark.skip(reason="Requires test database setup")
     def test_real_database_queries(self, test_db_url):
         """Test actual database queries (requires test database)"""
-        from utils.database import init_database_manager, get_march_events
+        from src.database.utils import init_database_manager, get_march_events
         
         # Initialize database manager with test database
         success = init_database_manager(test_db_url)
@@ -182,7 +182,7 @@ class TestDatabaseIntegration:
     @pytest.mark.skip(reason="Requires test database setup")
     def test_authentication_against_real_db(self, test_db_url):
         """Test authentication against real database"""
-        from utils.database import init_database_manager
+        from src.database.utils import init_database_manager
         from utils.auth import authenticate_user
         
         success = init_database_manager(test_db_url)

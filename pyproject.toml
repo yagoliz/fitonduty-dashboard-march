@@ -1,7 +1,7 @@
 [project]
 name = "fitonduty-dashboard-march"
 version = "0.1.0"
-description = "Add your description here"
+description = "Post-event analysis dashboard for long march physiological monitoring"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
@@ -20,6 +20,13 @@ dependencies = [
     "sqlalchemy>=2.0.43",
     "werkzeug>=3.1.3",
 ]
+
+[project.scripts]
+fitonduty-process-temp = "src.processing.temp_processor:main"
+fitonduty-process-steps = "src.processing.step_processor:main"
+fitonduty-process-watch = "src.processing.watch_processor:main"
+fitonduty-load-data = "src.processing.data_loader:main"
+fitonduty-merge-data = "src.processing.data_merger:main"
 
 [dependency-groups]
 dev = [
