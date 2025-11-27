@@ -458,28 +458,35 @@ def _create_personal_performance_card(user_summary, leaderboard_df=None, detail_
         except Exception:
             return na
 
+    avg_core_temp = user_summary.get('avg_core_temp')
+
     kpis = dbc.Row([
         dbc.Col(html.Div([
             html.I(className="fas fa-tachometer-alt me-2"),
             html.Span(fmt(pace, "{:.1f} km/h"), className="kpi-value"),
             html.Div("Avg Pace", className="kpi-label")
-        ], className="kpi-chip"), md=3, xs=6),
+        ], className="kpi-chip")),
         dbc.Col(html.Div([
             html.I(className="fas fa-heartbeat me-2"),
             html.Span(fmt(avg_hr, "{} bpm"), className="kpi-value"),
             html.Div("Avg HR", className="kpi-label")
-        ], className="kpi-chip"), md=3, xs=6),
+        ], className="kpi-chip")),
         dbc.Col(html.Div([
             html.I(className="fas fa-walking me-2"),
             html.Span(fmt(steps, "{:,.0f}"), className="kpi-value"),
             html.Div("Steps", className="kpi-label")
-        ], className="kpi-chip"), md=3, xs=6),
+        ], className="kpi-chip")),
         dbc.Col(html.Div([
             html.I(className="fas fa-clock me-2"),
             html.Span(fmt(finish_time, "{} min"), className="kpi-value"),
             html.Div("Finish Time", className="kpi-label")
-        ], className="kpi-chip"), md=3, xs=6)
-    ], className="g-2 mb-2")
+        ], className="kpi-chip")),
+        dbc.Col(html.Div([
+            html.I(className="fas fa-thermometer-half me-2"),
+            html.Span(fmt(avg_core_temp, "{:.1f} °C"), className="kpi-value"),
+            html.Div("Avg Core Temp", className="kpi-label")
+        ], className="kpi-chip"))
+    ], className="g-2 mb-2 row-cols-2 row-cols-sm-3 row-cols-md-5")
 
     # Group deltas (optional, if leaderboard has fields)
     deltas_row = html.Div()

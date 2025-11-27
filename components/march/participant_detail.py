@@ -42,7 +42,7 @@ def create_performance_summary_cards(summary_data: dict[str, Any]) -> dbc.Row:
                         dbc.CardBody(
                             [
                                 html.H6(
-                                    [html.I(className="fas fa-clock me-2"), "March Duration"],
+                                    [html.I(className="fas fa-clock me-2"), "Duration"],
                                     className="metric-label",
                                 ),
                                 html.H4(card_data["duration"], className="metric-value"),
@@ -53,8 +53,7 @@ def create_performance_summary_cards(summary_data: dict[str, Any]) -> dbc.Row:
                     className="h-100 metric-card",
                 )
             ],
-            width=6,
-            lg=3,
+            className="mb-3 mb-lg-0",
         ),
         # Average Pace
         dbc.Col(
@@ -66,7 +65,7 @@ def create_performance_summary_cards(summary_data: dict[str, Any]) -> dbc.Row:
                                 html.H6(
                                     [
                                         html.I(className="fas fa-tachometer-alt me-2"),
-                                        "Average Pace",
+                                        "Pace",
                                     ],
                                     className="metric-label",
                                 ),
@@ -81,8 +80,7 @@ def create_performance_summary_cards(summary_data: dict[str, Any]) -> dbc.Row:
                     className="h-100 metric-card",
                 )
             ],
-            width=6,
-            lg=3,
+            className="mb-3 mb-lg-0",
         ),
         # Steps & Activity
         dbc.Col(
@@ -92,7 +90,7 @@ def create_performance_summary_cards(summary_data: dict[str, Any]) -> dbc.Row:
                         dbc.CardBody(
                             [
                                 html.H6(
-                                    [html.I(className="fas fa-walking me-2"), "Total Steps"],
+                                    [html.I(className="fas fa-walking me-2"), "Steps"],
                                     className="metric-label",
                                 ),
                                 html.H4(card_data["total_steps"], className="metric-value"),
@@ -103,8 +101,7 @@ def create_performance_summary_cards(summary_data: dict[str, Any]) -> dbc.Row:
                     className="h-100 metric-card",
                 )
             ],
-            width=6,
-            lg=3,
+            className="mb-3 mb-lg-0",
         ),
         # Average Heart Rate
         dbc.Col(
@@ -116,7 +113,7 @@ def create_performance_summary_cards(summary_data: dict[str, Any]) -> dbc.Row:
                                 html.H6(
                                     [
                                         html.I(className="fas fa-heartbeat me-2"),
-                                        "Average Heart Rate",
+                                        "Heart Rate",
                                     ],
                                     className="metric-label",
                                 ),
@@ -128,12 +125,35 @@ def create_performance_summary_cards(summary_data: dict[str, Any]) -> dbc.Row:
                     className="h-100 metric-card",
                 )
             ],
-            width=6,
-            lg=3,
+            className="mb-3 mb-lg-0",
+        ),
+        # Average Core Temperature
+        dbc.Col(
+            [
+                dbc.Card(
+                    [
+                        dbc.CardBody(
+                            [
+                                html.H6(
+                                    [
+                                        html.I(className="fas fa-thermometer-half me-2"),
+                                        "Core Temp",
+                                    ],
+                                    className="metric-label",
+                                ),
+                                html.H4(card_data["avg_core_temp"], className="metric-value"),
+                                html.Small("Body temperature", className="text-muted"),
+                            ]
+                        )
+                    ],
+                    className="h-100 metric-card",
+                )
+            ],
+            className="mb-3 mb-lg-0",
         ),
     ]
 
-    return dbc.Row(cards, className="mb-4")
+    return dbc.Row(cards, className="mb-4 row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-5")
 
 
 def create_participant_detail_view(march_id: int, user_id: int) -> html.Div:

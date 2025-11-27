@@ -183,6 +183,7 @@ def get_march_participants(march_id: int) -> pd.DataFrame:
             mhm.total_steps,
             mhm.estimated_distance_km,
             mhm.avg_pace_kmh,
+            mhm.avg_core_temp,
             mhm.effort_score
         FROM march_participants mp
         JOIN users u ON mp.user_id = u.id

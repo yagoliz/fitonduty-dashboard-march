@@ -219,26 +219,25 @@ def create_participants_table(participants_df):
 
         row_class = "row-completed" if row['completed'] else "row-dnf"
 
+        # Create clickable participant name if completed
+        if row['completed']:
+            participant_link = dcc.Link(
+                [status_badge, row['username']],
+                href=f"/march/{row['march_id']}/participant/{row['user_id']}",
+                className="text-decoration-none"
+            )
+        else:
+            participant_link = html.Span([status_badge, row['username']])
+
         table_row = html.Tr([
-            html.Td([status_badge, row['username']]),
+            html.Td(participant_link),
             html.Td(f"{row['avg_hr']:.0f}" if pd.notna(row['avg_hr']) else "-", className="text-center"),
             html.Td(f"{row['max_hr']:.0f}" if pd.notna(row['max_hr']) else "-", className="text-center"),
+            html.Td(f"{row['avg_core_temp']:.1f}" if pd.notna(row['avg_core_temp']) else "-", className="text-center"),
             html.Td(f"{row['finish_time_minutes']:.0f}" if pd.notna(row['finish_time_minutes']) else "-", className="text-center"),
             html.Td(f"{row['total_steps']:,}" if pd.notna(row['total_steps']) else "-", className="text-center"),
             html.Td(f"{row['estimated_distance_km']:.2f}" if pd.notna(row['estimated_distance_km']) else "-", className="text-center"),
-            html.Td(f"{row['avg_pace_kmh']:.2f}" if pd.notna(row['avg_pace_kmh']) else "-", className="text-center"),
-            html.Td(
-                dbc.Button([
-                    html.I(className="fas fa-eye me-1"),
-                    "View"
-                ],
-                    size="sm",
-                    color="outline-primary",
-                    className="btn-outline-professional",
-                    id={"type": "view-participant-btn", "user_id": row['user_id'], "march_id": row['march_id']}
-                ) if row['completed'] else "-",
-                className="text-center"
-            )
+            html.Td(f"{row['avg_pace_kmh']:.2f}" if pd.notna(row['avg_pace_kmh']) else "-", className="text-center")
         ], className=row_class)
         table_rows.append(table_row)
 
@@ -248,11 +247,11 @@ def create_participants_table(participants_df):
                 html.Th("Participant"),
                 html.Th("Avg HR (bpm)", className="text-center"),
                 html.Th("Max HR (bpm)", className="text-center"),
+                html.Th("Avg Core Temp (°C)", className="text-center"),
                 html.Th("Finish Time (min)", className="text-center"),
                 html.Th("Total Steps", className="text-center"),
                 html.Th("Distance (km)", className="text-center"),
-                html.Th("Avg Pace (km/h)", className="text-center"),
-                html.Th("Actions", className="text-center")
+                html.Th("Avg Pace (km/h)", className="text-center")
             ])
         ]),
         html.Tbody(table_rows)
