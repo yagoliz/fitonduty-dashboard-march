@@ -41,15 +41,15 @@
 
 - name: Copy database schema file
   copy:
-    src: "{{ playbook_dir }}/../../src/database/schema.sql"
-    dest: "{{ march_working_dir }}/scripts/schema.sql"
+    src: "{{ playbook_dir }}/../../../src/database/schema.sql"
+    dest: "{{ march_working_dir }}/schema.sql"
     owner: postgres
     group: postgres
     mode: '0644'
 
 - name: Copy schema-only creation script
   copy:
-    src: "{{ playbook_dir }}/../../src/database/management/create_schema.py"
+    src: "{{ playbook_dir }}/../../../src/database/management/create_schema.py"
     dest: "{{ march_working_dir }}/scripts/create_schema.py"
     owner: postgres
     group: postgres
@@ -57,7 +57,7 @@
 
 - name: Copy database seeding script (with mock data)
   copy:
-    src: "{{ playbook_dir }}/../../src/database/management/seed_database.py"
+    src: "{{ playbook_dir }}/../../../src/database/management/seed_database.py"
     dest: "{{ march_working_dir }}/scripts/seed_database.py"
     owner: postgres
     group: postgres
