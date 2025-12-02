@@ -217,8 +217,12 @@ def handle_login(n_clicks, n_submit, username, password):
     prevent_initial_call=True
 )
 def handle_logout(n_clicks):
-    """Handle logout"""
+    """Handle logout and clear session"""
     if n_clicks:
+        from flask import session
+        # Logout the user (removes user from Flask-Login)
         logout_user()
+        # Clear the entire Flask session (removes server-side session data)
+        session.clear()
         return "/login"
     return dash.no_update

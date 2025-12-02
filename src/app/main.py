@@ -13,6 +13,7 @@ import dash_bootstrap_components as dbc
 from dash import Input, Output, callback, dcc, html
 from flask import Flask
 from flask_login import LoginManager, UserMixin, current_user
+from flask_session import Session
 
 # Import components
 # Import callbacks
@@ -61,6 +62,12 @@ server.wsgi_app = ProxyFix(
 
 # Initialize database connection
 init_database_manager(app_config.DATABASE_URL)
+
+# Initialize Flask-Session for server-side session storage
+# Flask-Session will automatically create and manage a 'sessions' table in your database
+# Sessions are now stored server-side and invalidated on logout
+Session(server)
+logger.info("Flask-Session initialized with SQLAlchemy backend")
 
 # Initialize Dash app
 app = dash.Dash(
