@@ -40,13 +40,24 @@ class Config:
 
     # Database
     DATABASE_URL = _get_database_url()
+    SQLALCHEMY_DATABASE_URI = _get_database_url()  # Required for Flask-SQLAlchemy
+    SQLALCHEMY_TRACK_MODIFICATIONS = False  # Disable Flask-SQLAlchemy event system (not needed)
 
-    # Session settings
+    # Session settings - Flask-Session (server-side sessions)
+    SESSION_TYPE = 'sqlalchemy'  # Store sessions in database
+    SESSION_PERMANENT = False  # Sessions expire when browser closes (unless remember me)
+    SESSION_USE_SIGNER = True  # Sign session cookie for extra security
+    SESSION_KEY_PREFIX = 'march_session:'  # Prefix for session keys in database
+    SESSION_SQLALCHEMY_TABLE = 'flask_sessions'  # Use different table name to avoid conflict
+
+    # Session cookie settings
     SESSION_COOKIE_SECURE = os.environ.get('SESSION_COOKIE_SECURE', 'false').lower() == 'true'
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = 'Lax'  # Important for proxy/tunnel compatibility
-    PERMANENT_SESSION_LIFETIME = timedelta(days=1)
     SESSION_COOKIE_NAME = 'march_session'  # Explicit session cookie name
+    PERMANENT_SESSION_LIFETIME = timedelta(days=1)
+
+    # Remember me cookie settings
     REMEMBER_COOKIE_SECURE = os.environ.get('SESSION_COOKIE_SECURE', 'false').lower() == 'true'
     REMEMBER_COOKIE_HTTPONLY = True
     REMEMBER_COOKIE_SAMESITE = 'Lax'

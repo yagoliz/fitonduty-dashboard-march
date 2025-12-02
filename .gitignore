@@ -4,9 +4,13 @@
 # Inventories
 ansible/inventory/*.yml
 !ansible/inventory/example.yml
+deployment/ansible/inventory/*.yml
+!deployment/ansible/inventory/example.yml
 
 ansible/vaults/*
 !ansible/vaults/vault-example.yml
+deployment/ansible/vaults/*
+!deployment/ansible/vaults/vault-example.yml
 .vault_pass
 
 # Scripts
@@ -14,6 +18,8 @@ ansible/vaults/*
 
 # Data stuff
 .output/*
+data/output/*
+!data/output/.gitkeep
 
 # Notebooks
 notebooks

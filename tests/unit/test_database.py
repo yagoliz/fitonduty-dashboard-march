@@ -6,7 +6,7 @@ import pandas as pd
 import pytest
 from sqlalchemy.exc import SQLAlchemyError
 
-from utils.database import (
+from src.database.utils import (
     DatabaseManager,
     get_db_manager,
     get_march_events,
