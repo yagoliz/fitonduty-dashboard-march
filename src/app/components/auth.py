@@ -198,7 +198,7 @@ def handle_login(n_clicks, n_submit, username, password):
         # Import User class from main
         from src.app.main import User
         user = User(user_data)
-        login_user(user, remember=True)
+        login_user(user, remember=False)
         return "", "/"  # Redirect to main page
     else:
         error_alert = dbc.Alert([
