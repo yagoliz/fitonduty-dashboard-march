@@ -60,6 +60,7 @@ class WatchDataProcessor:
         start_coords: Optional[tuple[float, float]] = None,
         end_coords: Optional[tuple[float, float]] = None,
         gps_tolerance_m: float = 50.0,
+        gps_aggregation_interval_s: int = 5,
     ):
         self.data_dir = Path(data_dir)
         self.march_id = march_id
@@ -69,6 +70,7 @@ class WatchDataProcessor:
         self.end_coords = end_coords  # (lat, lon)
         self.gps_tolerance_m = gps_tolerance_m
         self.gps_crossing_times = {}  # Will store {participant_id: {'start': datetime, 'end': datetime}}
+        self.gps_aggregation_interval_s = gps_aggregation_interval_s
 
         if not self.data_dir.exists():
             raise FileNotFoundError(f"Data directory not found: {data_dir}")
@@ -881,6 +883,27 @@ class WatchDataProcessor:
         logger.warning(f"No valid data for participant {participant_id}")
         return {}
 
+    def _aggregate_gps_positions(self, gps_positions: pd.DataFrame) -> pd.DataFrame:
+        """Aggregate GPS positions to specified intervals"""
+        gps_positions = (
+            gps_positions.set_index("timestamp")
+            .resample(f"{self.gps_aggregation_interval_s}s")
+            .agg(
+                {
+                    "timestamp_minutes": "min",
+                    "latitude": "mean",
+                    "longitude": "mean",
+                    "elevation": "mean",
+                }
+            )
+            .reset_index()
+        )
+
+        # Forward fill any missing values
+        gps_positions = gps_positions.ffill().bfill()
+
+        return gps_positions
+
     def _process_from_timeseries(
         self, participant_id: str, csv_df: pd.DataFrame, gps_df: pd.DataFrame, tcx_data: dict
     ) -> dict:
@@ -956,6 +979,9 @@ class WatchDataProcessor:
                     gps_positions["timestamp"] - gps_positions["timestamp"].min()
                 ).dt.total_seconds() / 60
 
+            # Aggregate GPS positions to specified intervals
+            gps_positions = self._aggregate_gps_positions(gps_positions)
+
         return {
             "participant_id": participant_id,
             "march_id": self.march_id,
@@ -1007,6 +1033,9 @@ class WatchDataProcessor:
                 gps_positions["timestamp_minutes"] = (
                     gps_positions["timestamp"] - start_time
                 ).dt.total_seconds() / 60
+
+            # Aggregate GPS positions to specified intervals
+            gps_positions = self._aggregate_gps_positions(gps_positions)
 
         return {
             "participant_id": participant_id,
@@ -1368,6 +1397,13 @@ def main():
     )
 
     parser.add_argument(
+        "--gps-aggregation-interval",
+        type=int,
+        default=60,
+        help="GPS aggregation interval in seconds (default: 60)",
+    )
+
+    parser.add_argument(
         "--gps-tolerance",
         type=float,
         default=50.0,
@@ -1411,6 +1447,8 @@ def main():
     if start_coords or end_coords:
         logger.info(f"GPS trimming tolerance: {args.gps_tolerance}m")
 
+    logger.info(f"GPS aggregation interval: {args.gps_aggregation_interval}s")
+
     try:
         # Create processor
         processor = WatchDataProcessor(
@@ -1421,6 +1459,7 @@ def main():
             start_coords=start_coords,
             end_coords=end_coords,
             gps_tolerance_m=args.gps_tolerance,
+            gps_aggregation_interval_s=args.gps_aggregation_interval,
         )
 
         # Process all participants
