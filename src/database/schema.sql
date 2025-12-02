@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS user_groups (
     PRIMARY KEY (user_id, group_id)
 );
 
--- Sessions Table
+-- Sessions Table (for future custom session management)
 CREATE TABLE IF NOT EXISTS sessions (
     id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -40,6 +40,14 @@ CREATE TABLE IF NOT EXISTS sessions (
     user_agent TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     expires_at TIMESTAMP NOT NULL
+);
+
+-- Flask-Session Table (used by Flask-Session for server-side session storage)
+CREATE TABLE IF NOT EXISTS flask_sessions (
+    id SERIAL PRIMARY KEY,
+    session_id VARCHAR(255) UNIQUE,
+    data BYTEA,
+    expiry TIMESTAMP WITHOUT TIME ZONE
 );
 
 -- March Events Table

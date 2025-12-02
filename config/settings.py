@@ -48,6 +48,7 @@ class Config:
     SESSION_PERMANENT = False  # Sessions expire when browser closes (unless remember me)
     SESSION_USE_SIGNER = True  # Sign session cookie for extra security
     SESSION_KEY_PREFIX = 'march_session:'  # Prefix for session keys in database
+    SESSION_SQLALCHEMY_TABLE = 'flask_sessions'  # Use different table name to avoid conflict
 
     # Session cookie settings
     SESSION_COOKIE_SECURE = os.environ.get('SESSION_COOKIE_SECURE', 'false').lower() == 'true'
