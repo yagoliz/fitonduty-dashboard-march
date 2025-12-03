@@ -14,6 +14,10 @@ from dash import Input, Output, callback, dcc, html
 from flask import Flask
 from flask_login import LoginManager, UserMixin, current_user
 from flask_session import Session
+from werkzeug.middleware.proxy_fix import ProxyFix
+
+# Import configuration
+from config.settings import config
 
 # Import components
 # Import callbacks
@@ -26,9 +30,6 @@ from src.app.components.march.participant_detail import (
     create_participant_detail_view,
 )
 from src.app.components.march.role_based_overview import create_role_based_march_overview
-
-# Import configuration
-from config.settings import config
 
 # Check permissions
 from src.app.utils.auth import user_can_view_participant
@@ -51,7 +52,6 @@ server.config.from_object(app_config)
 
 # Configure proxy trust for Cloudflare tunnel, nginx, etc.
 # This is critical for proper session handling behind proxies
-from werkzeug.middleware.proxy_fix import ProxyFix
 server.wsgi_app = ProxyFix(
     server.wsgi_app,
     x_for=1,  # Trust X-Forwarded-For
