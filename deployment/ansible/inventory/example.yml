@@ -23,6 +23,7 @@ all:
     # vault_march_db_password: your-march-db-password
     
     environment_name: example
+    flask_env: testing
     
     # Database configuration (optional - defaults provided)
     db_name: fitonduty_march

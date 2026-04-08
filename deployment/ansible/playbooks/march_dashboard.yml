@@ -7,6 +7,7 @@
     - "../vars/{{ environment_name }}/vault.yml"
   vars:
     server_db_name: "{{ environment_name | default('testing') }}"
+    flask_env_name: "{{ flask_env | default('testing') }}"
     march_db_name: "{{ db_name | default('fitonduty_march') }}"
     march_db_user: "{{ db_user | default('fitonduty_march') }}"
     database_host: "{{ db_host | default('localhost') }}"
