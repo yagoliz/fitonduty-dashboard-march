@@ -119,4 +119,4 @@ python database/seed_database_wrapper.py
 
 - **Processing Scripts**: See `src/processing/` for implementation details
 - **Database Schema**: See `src/database/schema.sql`
-- **Migration Guide**: See `MIGRATION_PLAN.md` for repository structure changes
+- **Database Migrations**: See `src/database/migrations/`

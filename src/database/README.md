@@ -8,10 +8,10 @@ This directory contains scripts for setting up the FitonDuty March Dashboard dat
 
 ```bash
 # Create database and run schema
-python database/create_database.py --host localhost --admin-user postgres --db-name fitonduty_march
+python src/database/management/create_database.py --host localhost --admin-user postgres --db-name fitonduty_march
 
 # Seed with sample data
-python database/seed_database.py
+python src/database/management/seed_database.py
 
 # Set environment variable
 export DATABASE_URL='postgresql://postgres:PASSWORD@localhost:5432/fitonduty_march'
@@ -24,10 +24,10 @@ export DATABASE_URL='postgresql://postgres:PASSWORD@localhost:5432/fitonduty_mar
 createdb -h localhost -U postgres fitonduty_march
 
 # 2. Run schema
-psql -h localhost -U postgres -d fitonduty_march -f database/schema.sql
+psql -h localhost -U postgres -d fitonduty_march -f src/database/schema.sql
 
 # 3. Seed data
-python database/seed_database.py
+python src/database/management/seed_database.py
 
 # 4. Set environment variable
 export DATABASE_URL='postgresql://postgres:PASSWORD@localhost:5432/fitonduty_march'
@@ -36,9 +36,11 @@ export DATABASE_URL='postgresql://postgres:PASSWORD@localhost:5432/fitonduty_mar
 ## Files
 
 - **`schema.sql`**: Database schema with all tables and indexes
-- **`create_database.py`**: Automated database creation script
-- **`seed_database.py`**: Sample data seeding script
-- **`README.md`**: This file
+- **`utils.py`**: Database query helpers used by the dashboard
+- **`management/create_database.py`**: Automated database creation script
+- **`management/create_schema.py`**: Apply schema to an existing database
+- **`management/seed_database.py`**: Sample data seeding script
+- **`migrations/`**: Versioned SQL migrations applied on top of `schema.sql`
 
 ## Database Schema Overview
 
@@ -48,13 +50,14 @@ export DATABASE_URL='postgresql://postgres:PASSWORD@localhost:5432/fitonduty_mar
 - `user_groups` - User-group relationships
 - `sessions` - Authentication sessions
 
-### March Tables  
+### March Tables
 - `march_events` - March events with basic info
 - `march_participants` - Participants in each march
 - `march_health_metrics` - Summary physiological metrics
 - `march_hr_zones` - Heart rate zone distributions
 - `march_movement_speeds` - Movement speed breakdowns
 - `march_timeseries_data` - Time-series HR/speed data during march
+- `march_gps_positions` - Per-participant GPS tracks
 
 ## Configuration
 

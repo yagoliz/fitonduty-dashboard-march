@@ -53,7 +53,7 @@ CSV format:
 ### Step 2: Generate Seed Configuration
 
 ```bash
-python scripts/generate_march_seed.py --csv participants.csv production
+python scripts/participants/generate_march_seed.py --csv participants.csv production
 ```
 
 This creates `config/seed-data/production_seed.yml` with:
@@ -102,7 +102,7 @@ You may want to:
 ```bash
 export DATABASE_URL="postgresql://fitonduty_march:password@host:5432/fitonduty_march"
 
-python scripts/add_participants.py --seed-file config/seed-data/production_seed.yml
+python scripts/participants/add_participants.py --seed-file config/seed-data/production_seed.yml
 ```
 
 The script will:
@@ -169,7 +169,7 @@ chmod 600 config/seed-data/production_seed.yml
 Generate seed configuration interactively:
 
 ```bash
-python scripts/generate_march_seed.py --interactive production
+python scripts/participants/generate_march_seed.py --interactive production
 ```
 
 The script will prompt you for:
@@ -209,7 +209,7 @@ participants:
 
 Then load it:
 ```bash
-python scripts/add_participants.py --seed-file config/seed-data/custom_seed.yml
+python scripts/participants/add_participants.py --seed-file config/seed-data/custom_seed.yml
 ```
 
 ## Adding New Participants to Existing Campaign
@@ -225,10 +225,10 @@ SM007,Squad Bravo
 EOF
 
 # Generate new seed file
-python scripts/generate_march_seed.py --csv new_participants.csv production_update
+python scripts/participants/generate_march_seed.py --csv new_participants.csv production_update
 
 # Add to database (only new participants will be added)
-python scripts/add_participants.py --seed-file config/seed-data/production_update_seed.yml
+python scripts/participants/add_participants.py --seed-file config/seed-data/production_update_seed.yml
 ```
 
 ### Option 2: Update Existing Seed File
@@ -239,7 +239,7 @@ vim config/seed-data/production_seed.yml
 
 # Add new participants to the participants list
 # Then run add_participants.py again
-python scripts/add_participants.py --seed-file config/seed-data/production_seed.yml
+python scripts/participants/add_participants.py --seed-file config/seed-data/production_seed.yml
 ```
 
 The script is smart - it only adds NEW participants and skips existing ones.
@@ -249,7 +249,7 @@ The script is smart - it only adds NEW participants and skips existing ones.
 Preview changes without making them:
 
 ```bash
-python scripts/add_participants.py \
+python scripts/participants/add_participants.py \
   --seed-file config/seed-data/production_seed.yml \
   --dry-run
 ```
@@ -261,7 +261,7 @@ This shows what would be added without actually modifying the database.
 Specify a different database:
 
 ```bash
-python scripts/add_participants.py \
+python scripts/participants/add_participants.py \
   --seed-file config/seed-data/production_seed.yml \
   --db-url postgresql://user:password@different-host:5432/dbname
 ```
@@ -442,7 +442,7 @@ C001,Squad Charlie
 EOF
 
 # 2. Generate seed configuration
-python scripts/generate_march_seed.py --csv participants.csv campaign_2025
+python scripts/participants/generate_march_seed.py --csv participants.csv campaign_2025
 
 # 3. Review and save credentials
 cat config/seed-data/campaign_2025_seed.yml
@@ -450,12 +450,12 @@ cat config/seed-data/campaign_2025_seed.yml
 
 # 4. Dry run to preview
 export DATABASE_URL="postgresql://fitonduty_march:password@server:5432/fitonduty_march"
-python scripts/add_participants.py \
+python scripts/participants/add_participants.py \
   --seed-file config/seed-data/campaign_2025_seed.yml \
   --dry-run
 
 # 5. Add to database
-python scripts/add_participants.py \
+python scripts/participants/add_participants.py \
   --seed-file config/seed-data/campaign_2025_seed.yml
 
 # 6. Verify

@@ -21,13 +21,13 @@ Both methods create the same result: a PostgreSQL database with the march dashbo
 ### Step 1: Configure Inventory
 
 ```bash
-cd ansible
+cd deployment/ansible
 
-# Copy example inventory
-cp inventory/example.yml inventory/production.yml
+# Copy example inventory (use a meaningful environment name, e.g. production, testing, march_2025)
+cp inventory/example.yml inventory/<environment>.yml
 
 # Edit with your details
-vim inventory/production.yml
+vim inventory/<environment>.yml
 ```
 
 Inventory configuration:
@@ -45,11 +45,12 @@ all:
 ### Step 2: Set Passwords
 
 ```bash
-# Copy vault template
-cp vars/vault-example.yml vars/production/vault.yml
+# Copy vault template into a directory matching environment_name from the inventory
+mkdir -p vars/<environment>
+cp vars/vault-example.yml vars/<environment>/vault.yml
 
 # Edit passwords
-vim vars/production/vault.yml
+vim vars/<environment>/vault.yml
 ```
 
 Set secure passwords:
@@ -60,14 +61,14 @@ vault_march_db_password: "your-secure-march-db-password"
 
 Encrypt the vault file:
 ```bash
-ansible-vault encrypt vars/production/vault.yml
+ansible-vault encrypt vars/<environment>/vault.yml
 # Enter vault password when prompted
 ```
 
 ### Step 3: Run Playbook
 
 ```bash
-ansible-playbook -i inventory/production.yml \
+ansible-playbook -i inventory/<environment>.yml \
   --ask-vault-pass \
   playbooks/march_database.yml
 ```
@@ -90,7 +91,7 @@ You'll be prompted for the vault password you created in Step 2.
 **Default (Schema Only - No Mock Data):**
 ```bash
 # Default creates schema only
-ansible-playbook -i inventory/production.yml --ask-vault-pass playbooks/march_database.yml
+ansible-playbook -i inventory/<environment>.yml --ask-vault-pass playbooks/march_database.yml
 ```
 
 **Development (With Mock Data):**
@@ -172,13 +173,13 @@ git clone https://github.com/your-org/fitonduty-dashboard-march
 cd fitonduty-dashboard-march
 
 # Apply schema
-sudo -u postgres psql -d fitonduty_march -f database/schema.sql
+sudo -u postgres psql -d fitonduty_march -f src/database/schema.sql
 ```
 
 Or use the Python script:
 ```bash
 export DATABASE_URL="postgresql://postgres:password@localhost:5432/fitonduty_march"
-python database/create_schema.py
+python src/database/management/create_schema.py
 ```
 
 ### Step 5: Grant Permissions
@@ -230,7 +231,7 @@ export DATABASE_URL="postgresql://fitonduty_march:password@host:5432/fitonduty_m
 psql $DATABASE_URL -c "SELECT 1"
 
 # Use in scripts
-python scripts/add_participants.py --seed-file config/seed-data/participants.yml
+python scripts/participants/add_participants.py --seed-file config/seed-data/participants.yml
 ```
 
 ## Database Schema

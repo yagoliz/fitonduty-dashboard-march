@@ -21,7 +21,7 @@ The `process_step_data.py` script processes accelerometer data (acc.parquet file
 Process accelerometer data for all participants:
 
 ```bash
-python scripts/process_step_data.py \
+python scripts/data/process_step_data.py \
   --data-dir /path/to/participants \
   --march-id 1 \
   --output ./output
@@ -32,7 +32,7 @@ python scripts/process_step_data.py \
 Use a different window size (default is 8 seconds):
 
 ```bash
-python scripts/process_step_data.py \
+python scripts/data/process_step_data.py \
   --data-dir /path/to/participants \
   --march-id 1 \
   --window-size 10 \
@@ -44,7 +44,7 @@ python scripts/process_step_data.py \
 Align timestamps to a specific march start time:
 
 ```bash
-python scripts/process_step_data.py \
+python scripts/data/process_step_data.py \
   --data-dir /path/to/participants \
   --march-id 1 \
   --march-start-time "2025-03-15T08:30:00" \
@@ -56,7 +56,7 @@ python scripts/process_step_data.py \
 Use GPS crossing times from watch data processing to trim accelerometer data:
 
 ```bash
-python scripts/process_step_data.py \
+python scripts/data/process_step_data.py \
   --data-dir /path/to/participants \
   --march-id 1 \
   --gps-trim-file ./output/gps_crossing_times.json \
@@ -70,7 +70,7 @@ python scripts/process_step_data.py \
 Process step data and merge with existing watch data:
 
 ```bash
-python scripts/process_step_data.py \
+python scripts/data/process_step_data.py \
   --data-dir /path/to/participants \
   --march-id 1 \
   --output ./output \
@@ -185,7 +185,7 @@ This is useful because watch data often lacks step information, which can be com
 
 ```bash
 # Step 1: Process watch data with GPS trimming
-python scripts/process_watch_data.py \
+python scripts/data/process_watch_data.py \
   --data-dir /mnt/data/march_2025/watch_exports \
   --march-id 1 \
   --march-start-time "2025-03-15T08:00:00" \
@@ -197,7 +197,7 @@ python scripts/process_watch_data.py \
 # Output: ./output/gps_crossing_times.json (+ health metrics, timeseries, etc.)
 
 # Step 2: Process accelerometer step data with GPS trimming
-python scripts/process_step_data.py \
+python scripts/data/process_step_data.py \
   --data-dir /mnt/data/march_2025/participants \
   --march-id 1 \
   --gps-trim-file ./output/gps_crossing_times.json \
@@ -205,7 +205,7 @@ python scripts/process_step_data.py \
 # Output: ./output/march_step_data.csv, ./output/march_step_summary.csv
 
 # Step 3 (Optional): Merge step data with watch timeseries
-python scripts/process_step_data.py \
+python scripts/data/process_step_data.py \
   --data-dir /mnt/data/march_2025/participants \
   --march-id 1 \
   --gps-trim-file ./output/gps_crossing_times.json \
@@ -221,14 +221,14 @@ python scripts/process_step_data.py \
 # Output: ./output/march_timeseries_data.csv
 
 # Step 2: Process accelerometer step data
-python scripts/process_step_data.py \
+python scripts/data/process_step_data.py \
   --data-dir /mnt/data/march_2025/participants \
   --march-id 1 \
   --march-start-time "2025-03-15T08:30:00" \
   --output ./output
 
 # Step 3: Merge with watch data
-python scripts/process_step_data.py \
+python scripts/data/process_step_data.py \
   --data-dir /mnt/data/march_2025/participants \
   --march-id 1 \
   --march-start-time "2025-03-15T08:30:00" \

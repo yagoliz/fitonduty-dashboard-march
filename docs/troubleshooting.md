@@ -125,7 +125,7 @@ EOF
 
 # Run schema creation
 export DATABASE_URL="postgresql://postgres:password@host:5432/fitonduty_march"
-python database/create_schema.py
+python src/database/management/create_schema.py
 ```
 
 ## Ansible Issues
@@ -144,7 +144,7 @@ fatal: [database]: FAILED! => {"msg": "chown failed: failed to look up user post
 This is fixed in the updated playbook which installs PostgreSQL first. Re-run:
 
 ```bash
-ansible-playbook -i inventory/production.yml --ask-vault-pass playbooks/march_database.yml
+ansible-playbook -i inventory/<environment>.yml --ask-vault-pass playbooks/march_database.yml
 ```
 
 ### Ansible Connection Issues
@@ -161,16 +161,16 @@ fatal: [host]: UNREACHABLE! => {"changed": false, "msg": "Failed to connect to t
 ssh user@your-server
 
 # 2. Test Ansible ping
-ansible -i inventory/production.yml database_servers -m ping
+ansible -i inventory/<environment>.yml database_servers -m ping
 
 # 3. Check SSH key
 ssh -i ~/.ssh/your-key user@your-server
 
 # 4. Verify inventory file
-cat inventory/production.yml
+cat inventory/<environment>.yml
 
 # 5. Try with verbose output
-ansible-playbook -i inventory/production.yml --ask-vault-pass -vvv playbooks/march_database.yml
+ansible-playbook -i inventory/<environment>.yml --ask-vault-pass -vvv playbooks/march_database.yml
 ```
 
 ### Vault Password Issues
@@ -184,18 +184,18 @@ ERROR! Attempting to decrypt but no vault secrets found
 
 ```bash
 # 1. Verify vault file is encrypted
-head vars/production/vault.yml
+head vars/<environment>/vault.yml
 # Should show: $ANSIBLE_VAULT;1.1;AES256
 
 # 2. If not encrypted, encrypt it
-ansible-vault encrypt vars/production/vault.yml
+ansible-vault encrypt vars/<environment>/vault.yml
 
 # 3. If you forgot password, decrypt with old password and re-encrypt
-ansible-vault decrypt vars/production/vault.yml
-ansible-vault encrypt vars/production/vault.yml
+ansible-vault decrypt vars/<environment>/vault.yml
+ansible-vault encrypt vars/<environment>/vault.yml
 
 # 4. Use --ask-vault-pass flag
-ansible-playbook -i inventory/production.yml --ask-vault-pass playbooks/march_database.yml
+ansible-playbook -i inventory/<environment>.yml --ask-vault-pass playbooks/march_database.yml
 ```
 
 ## Data Loading Issues
@@ -220,7 +220,7 @@ ls ./march_data/*.CSV ./march_data/*.csv 2>/dev/null
 pwd
 
 # 4. Use absolute path
-python scripts/process_watch_data.py \
+python scripts/data/process_watch_data.py \
   --data-dir /full/path/to/march_data \
   --march-id 1 \
   --march-start-time 2025-03-15T08:00:00 \
@@ -262,7 +262,7 @@ cut -d',' -f2 ./output/march_health_metrics.csv | sort -u
 psql $DATABASE_URL -c "SELECT username FROM users WHERE role='participant'"
 
 # 3. Create mapping between CSV IDs and database usernames
-python scripts/load_march_data.py \
+python scripts/data/load_march_data.py \
   --data-dir ./output \
   --march-id 1 \
   --mapping SM001:participant1,SM002:participant2,SM003:participant3
@@ -294,7 +294,7 @@ DELETE FROM march_health_metrics WHERE march_id = 1;
 Or use the script which handles updates:
 ```bash
 # Script automatically replaces timeseries/GPS data
-python scripts/load_march_data.py --data-dir ./output --march-id 1
+python scripts/data/load_march_data.py --data-dir ./output --march-id 1
 ```
 
 ## Participant Management Issues
@@ -412,7 +412,7 @@ SET password = crypt('newpassword', gen_salt('bf'))
 WHERE username = 'participant1';
 
 -- Or recreate user using seed file
-python scripts/add_participants.py --seed-file config/seed-data/production_seed.yml
+python scripts/participants/add_participants.py --seed-file config/seed-data/production_seed.yml
 ```
 
 ## Script Issues
@@ -452,13 +452,13 @@ which python3
 python3 --version
 
 # 2. Use python3 explicitly
-python3 scripts/add_participants.py --help
+python3 scripts/participants/add_participants.py --help
 
 # 3. Create alias (add to ~/.bashrc)
 alias python=python3
 
 # 4. Make script executable
-chmod +x scripts/add_participants.py
+chmod +x scripts/participants/add_participants.py
 ```
 
 ### Environment Variable Not Set
@@ -591,10 +591,10 @@ GROUP BY state;
 
 ```bash
 # Python scripts
-python -v scripts/load_march_data.py --data-dir ./output --march-id 1
+python -v scripts/data/load_march_data.py --data-dir ./output --march-id 1
 
 # Ansible
-ansible-playbook -i inventory/production.yml -vvv playbooks/march_database.yml
+ansible-playbook -i inventory/<environment>.yml -vvv playbooks/march_database.yml
 
 # PostgreSQL logging
 # Edit postgresql.conf:

@@ -42,10 +42,8 @@ The `process_watch_data.py` script has been updated to:
 ### Usage
 
 ```bash
-cd fitonduty-dashboard-march/scripts
-
 # Process watch data including GPS
-python process_watch_data.py \
+python scripts/data/process_watch_data.py \
   --data-dir /path/to/watch/data \
   --march-id 1 \
   --march-start-time 2024-07-21T08:00:00 \
@@ -72,12 +70,12 @@ march_id,user_id,timestamp_minutes,latitude,longitude,elevation,speed_kmh
 
 ## Database Query Functions
 
-New functions in `utils/database.py`:
+New functions in `src/database/utils.py`:
 
 ### Get Single Participant Route
 
 ```python
-from utils.database import get_march_gps_track
+from database.utils import get_march_gps_track
 
 gps_data = get_march_gps_track(march_id=1, user_id=123)
 # Returns DataFrame with: timestamp_minutes, latitude, longitude, elevation, speed_kmh, bearing
@@ -86,7 +84,7 @@ gps_data = get_march_gps_track(march_id=1, user_id=123)
 ### Get All Participant Routes
 
 ```python
-from utils.database import get_march_all_gps_tracks
+from database.utils import get_march_all_gps_tracks
 
 all_routes = get_march_all_gps_tracks(march_id=1)
 # Returns DataFrame with: user_id, username, timestamp_minutes, latitude, longitude, elevation, speed_kmh
@@ -94,13 +92,13 @@ all_routes = get_march_all_gps_tracks(march_id=1)
 
 ## Visualization Components
 
-New module: `utils/visualization/march_route_map.py`
+New module: `src/app/utils/visualization/march_route_map.py`
 
 ### Individual Route Map
 
 ```python
-from utils.visualization.march_route_map import create_march_route_map
-from utils.database import get_march_gps_track
+from app.utils.visualization.march_route_map import create_march_route_map
+from database.utils import get_march_gps_track
 
 # Get GPS data
 gps_data = get_march_gps_track(march_id=1, user_id=123)
@@ -119,8 +117,8 @@ fig = create_march_route_map(gps_data, participant_name="John Doe")
 ### Multi-Participant Route Map
 
 ```python
-from utils.visualization.march_route_map import create_multi_participant_route_map
-from utils.database import get_march_all_gps_tracks
+from app.utils.visualization.march_route_map import create_multi_participant_route_map
+from database.utils import get_march_all_gps_tracks
 
 # Get all GPS tracks
 all_routes = get_march_all_gps_tracks(march_id=1)
@@ -138,8 +136,8 @@ fig = create_multi_participant_route_map(all_routes)
 ### Elevation Profile
 
 ```python
-from utils.visualization.march_route_map import create_elevation_profile
-from utils.database import get_march_gps_track
+from app.utils.visualization.march_route_map import create_elevation_profile
+from database.utils import get_march_gps_track
 
 # Get GPS data
 gps_data = get_march_gps_track(march_id=1, user_id=123)
@@ -158,11 +156,11 @@ fig = create_elevation_profile(gps_data, participant_name="John Doe")
 
 ### Adding Map to Participant Detail View
 
-Update `components/march/participant_detail.py`:
+Update `src/app/components/march/participant_detail.py`:
 
 ```python
-from utils.database import get_march_gps_track
-from utils.visualization.march_route_map import create_march_route_map, create_elevation_profile
+from database.utils import get_march_gps_track
+from app.utils.visualization.march_route_map import create_march_route_map, create_elevation_profile
 
 def create_participant_detail_view(march_id: int, user_id: int) -> html.Div:
     # ... existing code ...
@@ -211,7 +209,7 @@ def create_participant_detail_view(march_id: int, user_id: int) -> html.Div:
 ### 1. Process Watch Data
 
 ```bash
-python scripts/process_watch_data.py \
+python scripts/data/process_watch_data.py \
   --data-dir /path/to/watch_data \
   --march-id 1 \
   --march-start-time "2024-07-21T08:00:00" \

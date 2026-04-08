@@ -61,12 +61,14 @@ See [`docs/README.md`](./docs/README.md) for complete documentation index.
 ```bash
 # Configure Ansible inventory and vault passwords
 cd deployment/ansible
-cp inventory/example.yml inventory/production.yml
-cp vaults/vault-example.yml vaults/production-vault.yml
+cp inventory/example.yml inventory/<environment>.yml
+mkdir -p vars/<environment>
+cp vars/vault-example.yml vars/<environment>/vault.yml
+ansible-vault encrypt vars/<environment>/vault.yml
 
 # Edit inventory and vault files with your server details
 # Then run Ansible playbook (creates database, no mock data)
-ansible-playbook -i inventory/production.yml --ask-vault-pass playbooks/march_database.yml
+ansible-playbook -i inventory/<environment>.yml --ask-vault-pass playbooks/march_database.yml
 ```
 
 See [Database Setup Guide](./docs/setup-database.md) for detailed instructions.
@@ -332,11 +334,9 @@ fitonduty-dashboard-march/
 │   └── conftest.py                 # Test fixtures
 ├── config/                         # Configuration files
 │   └── seed-data/                  # Seed data templates
-├── database/                       # Legacy database scripts (wrappers)
-│   └── schema.sql                  # Database schema (reference)
+├── database/                       # Legacy wrappers (delegating to src/database/management)
 ├── app.py                          # Application entry point (wrapper)
 ├── pyproject.toml                  # Project configuration
-├── .env.example                    # Example environment variables
 └── README.md                       # This file
 ```
 
@@ -443,12 +443,12 @@ docker logs -f march-dashboard
 ### Ansible Deployment
 
 ```bash
-# Deploy to production
+# Deploy dashboard
 cd deployment/ansible
-ansible-playbook -i inventory/production.yml --ask-vault-pass playbooks/deploy.yml
+ansible-playbook -i inventory/<environment>.yml --ask-vault-pass playbooks/march_dashboard.yml
 
 # Deploy database only
-ansible-playbook -i inventory/production.yml --ask-vault-pass playbooks/march_database.yml
+ansible-playbook -i inventory/<environment>.yml --ask-vault-pass playbooks/march_database.yml
 ```
 
 See [Deployment Guide](./deployment/README.md) for comprehensive instructions.
@@ -551,7 +551,7 @@ Key tables:
 planned → completed → processing → published
 ```
 
-See [`database/schema.sql`](./database/schema.sql) for complete schema.
+See [`src/database/schema.sql`](./src/database/schema.sql) for complete schema.
 
 ### Data Processing Pipeline
 

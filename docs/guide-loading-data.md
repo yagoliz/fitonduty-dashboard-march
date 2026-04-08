@@ -59,7 +59,7 @@ The `process_watch_data.py` script converts various watch export formats into st
 ### Basic Usage
 
 ```bash
-python scripts/process_watch_data.py \
+python scripts/data/process_watch_data.py \
   --data-dir march_data/march_alpha_2025_03_15 \
   --march-id 1 \
   --march-start-time 2025-03-15T08:00:00 \
@@ -71,7 +71,7 @@ python scripts/process_watch_data.py \
 If you know the start/end GPS coordinates of the march, you can trim all data to only include the actual march time:
 
 ```bash
-python scripts/process_watch_data.py \
+python scripts/data/process_watch_data.py \
   --data-dir march_data/march_alpha_2025_03_15 \
   --march-id 1 \
   --march-start-time 2025-03-15T08:00:00 \
@@ -192,7 +192,7 @@ If CSV participant IDs match database usernames:
 ```bash
 export DATABASE_URL="postgresql://user:password@host:5432/fitonduty_march"
 
-python scripts/load_march_data.py \
+python scripts/data/load_march_data.py \
   --data-dir ./output/march_alpha \
   --march-id 1
 ```
@@ -202,7 +202,7 @@ python scripts/load_march_data.py \
 If CSV has custom participant IDs (like SM001, SM002) that need to be mapped to database usernames:
 
 ```bash
-python scripts/load_march_data.py \
+python scripts/data/load_march_data.py \
   --data-dir ./output/march_alpha \
   --march-id 1 \
   --mapping SM001:participant1,SM002:participant2,SM003:participant3,SM004:participant4
@@ -213,7 +213,7 @@ python scripts/load_march_data.py \
 Preview what will be loaded without making changes:
 
 ```bash
-python scripts/load_march_data.py \
+python scripts/data/load_march_data.py \
   --data-dir ./output/march_alpha \
   --march-id 1 \
   --mapping SM001:participant1,SM002:participant2 \
@@ -299,7 +299,7 @@ GROUP BY u.username;
 Once data is verified, make it visible to participants:
 
 ```bash
-python scripts/manage_march_events.py update-status \
+python scripts/events/manage_march_events.py update-status \
   --march-id 1 \
   --status published
 ```
@@ -347,7 +347,7 @@ cut -d',' -f2 ./output/march_alpha/march_health_metrics.csv | sort -u
 psql $DATABASE_URL -c "SELECT username FROM users WHERE role='participant'"
 
 # Create mapping
-python scripts/load_march_data.py \
+python scripts/data/load_march_data.py \
   --data-dir ./output/march_alpha \
   --march-id 1 \
   --mapping SM001:participant1,SM002:participant2
@@ -370,7 +370,7 @@ DELETE FROM march_health_metrics WHERE march_id = 1;
 DELETE FROM march_participants WHERE march_id = 1;
 
 -- Then reload
-python scripts/load_march_data.py --data-dir ./output/march_alpha --march-id 1
+python scripts/data/load_march_data.py --data-dir ./output/march_alpha --march-id 1
 ```
 
 ## Complete Example Workflow
@@ -382,7 +382,7 @@ cp /path/to/watch/exports/*.CSV march_data/alpha_2025_03_15/
 cp /path/to/watch/exports/*.GPX march_data/alpha_2025_03_15/
 
 # 2. Process watch data
-python scripts/process_watch_data.py \
+python scripts/data/process_watch_data.py \
   --data-dir march_data/alpha_2025_03_15 \
   --march-id 1 \
   --march-start-time 2025-03-15T08:00:00 \
@@ -393,7 +393,7 @@ ls -lh ./output/alpha/
 head ./output/alpha/march_health_metrics.csv
 
 # 4. Dry run to verify
-python scripts/load_march_data.py \
+python scripts/data/load_march_data.py \
   --data-dir ./output/alpha \
   --march-id 1 \
   --mapping SM001:participant1,SM002:participant2,SM003:participant3 \
@@ -401,7 +401,7 @@ python scripts/load_march_data.py \
 
 # 5. Load to database
 export DATABASE_URL="postgresql://fitonduty_march:password@server:5432/fitonduty_march"
-python scripts/load_march_data.py \
+python scripts/data/load_march_data.py \
   --data-dir ./output/alpha \
   --march-id 1 \
   --mapping SM001:participant1,SM002:participant2,SM003:participant3
@@ -410,7 +410,7 @@ python scripts/load_march_data.py \
 psql $DATABASE_URL -c "SELECT COUNT(*) FROM march_timeseries_data WHERE march_id = 1"
 
 # 7. Publish results
-python scripts/manage_march_events.py update-status --march-id 1 --status published
+python scripts/events/manage_march_events.py update-status --march-id 1 --status published
 ```
 
 ## Next Steps

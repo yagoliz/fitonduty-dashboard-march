@@ -10,11 +10,14 @@ All scripts are located in the `scripts/` directory and handle database manageme
 
 | Script | Purpose |
 |--------|---------|
-| `generate_march_seed.py` | Generate participant seed configurations |
-| `add_participants.py` | Add participants to database |
-| `manage_march_events.py` | Create and manage march events |
-| `process_watch_data.py` | Process watch export files to CSV |
-| `load_march_data.py` | Load processed CSV data to database |
+| `scripts/participants/generate_march_seed.py` | Generate participant seed configurations |
+| `scripts/participants/add_participants.py` | Add participants to database |
+| `scripts/events/manage_march_events.py` | Create and manage march events |
+| `scripts/data/process_watch_data.py` | Process watch export files to CSV |
+| `scripts/data/process_step_data.py` | Process accelerometer step data |
+| `scripts/data/process_temp_data.py` | Process core temperature data |
+| `scripts/data/load_march_data.py` | Load processed CSV data to database |
+| `scripts/data/merge_march_data.py` | Merge data from multiple sources |
 
 ## generate_march_seed.py
 
@@ -24,17 +27,17 @@ Generate seed data configuration files with participants and auto-generated secu
 
 ```bash
 # From CSV file
-python scripts/generate_march_seed.py --csv participants.csv campaign_name
+python scripts/participants/generate_march_seed.py --csv participants.csv campaign_name
 
 # Interactive mode
-python scripts/generate_march_seed.py --interactive campaign_name
+python scripts/participants/generate_march_seed.py --interactive campaign_name
 
 # With custom output path
-python scripts/generate_march_seed.py --csv participants.csv campaign_name \
+python scripts/participants/generate_march_seed.py --csv participants.csv campaign_name \
   --output config/seed-data/custom.yml
 
 # Dry run
-python scripts/generate_march_seed.py --csv participants.csv campaign_name --dry-run
+python scripts/participants/generate_march_seed.py --csv participants.csv campaign_name --dry-run
 ```
 
 ### Arguments
@@ -76,7 +79,7 @@ B001,Squad Bravo
 EOF
 
 # Generate seed file
-python scripts/generate_march_seed.py --csv participants.csv campaign_2025
+python scripts/participants/generate_march_seed.py --csv participants.csv campaign_2025
 
 # Output: config/seed-data/campaign_2025_seed.yml
 ```
@@ -89,15 +92,15 @@ Add participants from a seed YAML file to database. Only adds new participants, 
 
 ```bash
 # Add participants from seed file
-python scripts/add_participants.py --seed-file config/seed-data/participants.yml
+python scripts/participants/add_participants.py --seed-file config/seed-data/participants.yml
 
 # With custom database URL
-python scripts/add_participants.py \
+python scripts/participants/add_participants.py \
   --seed-file config/seed-data/participants.yml \
   --db-url postgresql://user:password@host:5432/dbname
 
 # Dry run
-python scripts/add_participants.py \
+python scripts/participants/add_participants.py \
   --seed-file config/seed-data/participants.yml \
   --dry-run
 ```
@@ -124,12 +127,12 @@ python scripts/add_participants.py \
 export DATABASE_URL="postgresql://fitonduty_march:password@host:5432/fitonduty_march"
 
 # Dry run first
-python scripts/add_participants.py \
+python scripts/participants/add_participants.py \
   --seed-file config/seed-data/campaign_2025_seed.yml \
   --dry-run
 
 # Add to database
-python scripts/add_participants.py \
+python scripts/participants/add_participants.py \
   --seed-file config/seed-data/campaign_2025_seed.yml
 ```
 
@@ -148,10 +151,10 @@ Create and manage march events in the database.
 
 ```bash
 # Interactive mode
-python scripts/manage_march_events.py create --interactive
+python scripts/events/manage_march_events.py create --interactive
 
 # Command line
-python scripts/manage_march_events.py create \
+python scripts/events/manage_march_events.py create \
   --name "Training March Alpha" \
   --date 2025-03-15 \
   --distance 8.2 \
@@ -177,13 +180,13 @@ python scripts/manage_march_events.py create \
 ### List March Events
 
 ```bash
-python scripts/manage_march_events.py list [--db-url URL]
+python scripts/events/manage_march_events.py list [--db-url URL]
 ```
 
 ### Update March Status
 
 ```bash
-python scripts/manage_march_events.py update-status \
+python scripts/events/manage_march_events.py update-status \
   --march-id 1 \
   --status completed \
   [--db-url URL]
@@ -200,10 +203,10 @@ python scripts/manage_march_events.py update-status \
 
 ```bash
 # Add all participants from march's group
-python scripts/manage_march_events.py add-participants --march-id 1
+python scripts/events/manage_march_events.py add-participants --march-id 1
 
 # Add participants from specific group
-python scripts/manage_march_events.py add-participants \
+python scripts/events/manage_march_events.py add-participants \
   --march-id 1 \
   --group "Squad Bravo"
 ```
@@ -214,16 +217,16 @@ python scripts/manage_march_events.py add-participants \
 export DATABASE_URL="postgresql://fitonduty_march:password@host:5432/fitonduty_march"
 
 # Create march
-python scripts/manage_march_events.py create --interactive
+python scripts/events/manage_march_events.py create --interactive
 
 # Add participants
-python scripts/manage_march_events.py add-participants --march-id 1
+python scripts/events/manage_march_events.py add-participants --march-id 1
 
 # List marches
-python scripts/manage_march_events.py list
+python scripts/events/manage_march_events.py list
 
 # Update status
-python scripts/manage_march_events.py update-status --march-id 1 --status completed
+python scripts/events/manage_march_events.py update-status --march-id 1 --status completed
 ```
 
 ## process_watch_data.py
@@ -234,7 +237,7 @@ Process watch export files (CSV/GPX/TCX) from Garmin, Suunto, Polar, etc. and ge
 
 **Basic:**
 ```bash
-python scripts/process_watch_data.py \
+python scripts/data/process_watch_data.py \
   --data-dir /path/to/watch/exports \
   --march-id 1 \
   --march-start-time 2025-03-15T08:00:00 \
@@ -243,7 +246,7 @@ python scripts/process_watch_data.py \
 
 **With GPS Trimming (Recommended):**
 ```bash
-python scripts/process_watch_data.py \
+python scripts/data/process_watch_data.py \
   --data-dir /path/to/watch/exports \
   --march-id 1 \
   --march-start-time 2025-03-15T08:00:00 \
@@ -307,7 +310,7 @@ cp /path/to/exports/*.CSV march_data/alpha_2025_03_15/
 cp /path/to/exports/*.GPX march_data/alpha_2025_03_15/
 
 # Process
-python scripts/process_watch_data.py \
+python scripts/data/process_watch_data.py \
   --data-dir march_data/alpha_2025_03_15 \
   --march-id 1 \
   --march-start-time 2025-03-15T08:00:00 \
@@ -322,24 +325,24 @@ Load processed watch data CSVs (generated by `process_watch_data.py`) into the d
 
 ```bash
 # Load data with automatic participant mapping
-python scripts/load_march_data.py \
+python scripts/data/load_march_data.py \
   --data-dir ./output \
   --march-id 1
 
 # With custom participant ID mapping
-python scripts/load_march_data.py \
+python scripts/data/load_march_data.py \
   --data-dir ./output \
   --march-id 1 \
   --mapping SM001:participant1,SM002:participant2
 
 # With custom database URL
-python scripts/load_march_data.py \
+python scripts/data/load_march_data.py \
   --data-dir ./output \
   --march-id 1 \
   --db-url postgresql://user:password@host:5432/dbname
 
 # Dry run
-python scripts/load_march_data.py \
+python scripts/data/load_march_data.py \
   --data-dir ./output \
   --march-id 1 \
   --dry-run
@@ -380,14 +383,14 @@ python scripts/load_march_data.py \
 export DATABASE_URL="postgresql://fitonduty_march:password@host:5432/fitonduty_march"
 
 # Dry run first
-python scripts/load_march_data.py \
+python scripts/data/load_march_data.py \
   --data-dir ./output/alpha \
   --march-id 1 \
   --mapping SM001:participant1,SM002:participant2 \
   --dry-run
 
 # Load to database
-python scripts/load_march_data.py \
+python scripts/data/load_march_data.py \
   --data-dir ./output/alpha \
   --march-id 1 \
   --mapping SM001:participant1,SM002:participant2
@@ -408,7 +411,7 @@ export DATABASE_URL="postgresql://user:password@host:port/database"
 echo $DATABASE_URL
 
 # Use in scripts (no need for --db-url flag)
-python scripts/add_participants.py --seed-file config/seed-data/participants.yml
+python scripts/participants/add_participants.py --seed-file config/seed-data/participants.yml
 ```
 
 ## Database URL Format
@@ -440,32 +443,32 @@ SM002,Squad Alpha
 SM003,Squad Bravo
 EOF
 
-python scripts/generate_march_seed.py --csv participants.csv campaign_2025
+python scripts/participants/generate_march_seed.py --csv participants.csv campaign_2025
 
 # 2. Add participants to database
-python scripts/add_participants.py --seed-file config/seed-data/campaign_2025_seed.yml
+python scripts/participants/add_participants.py --seed-file config/seed-data/campaign_2025_seed.yml
 
 # 3. Create march event
-python scripts/manage_march_events.py create --interactive
+python scripts/events/manage_march_events.py create --interactive
 
 # 4. Add participants to march
-python scripts/manage_march_events.py add-participants --march-id 1
+python scripts/events/manage_march_events.py add-participants --march-id 1
 
 # 5. After march: Process watch data
-python scripts/process_watch_data.py \
+python scripts/data/process_watch_data.py \
   --data-dir march_data/alpha_2025_03_15 \
   --march-id 1 \
   --march-start-time 2025-03-15T08:00:00 \
   --output ./output/alpha
 
 # 6. Load processed data
-python scripts/load_march_data.py \
+python scripts/data/load_march_data.py \
   --data-dir ./output/alpha \
   --march-id 1 \
   --mapping SM001:participant1,SM002:participant2,SM003:participant3
 
 # 7. Publish results
-python scripts/manage_march_events.py update-status --march-id 1 --status published
+python scripts/events/manage_march_events.py update-status --march-id 1 --status published
 ```
 
 ## Common Patterns
@@ -474,11 +477,11 @@ python scripts/manage_march_events.py update-status --march-id 1 --status publis
 
 ```bash
 # Dry run to preview
-python scripts/add_participants.py --seed-file config/seed-data/participants.yml --dry-run
-python scripts/load_march_data.py --data-dir ./output --march-id 1 --dry-run
+python scripts/participants/add_participants.py --seed-file config/seed-data/participants.yml --dry-run
+python scripts/data/load_march_data.py --data-dir ./output --march-id 1 --dry-run
 
 # List before updating
-python scripts/manage_march_events.py list
+python scripts/events/manage_march_events.py list
 ```
 
 ### Verify After Running
@@ -506,13 +509,13 @@ EOF
 ```bash
 # Add multiple seed files
 for file in config/seed-data/squad_*.yml; do
-  python scripts/add_participants.py --seed-file "$file"
+  python scripts/participants/add_participants.py --seed-file "$file"
 done
 
 # Process multiple marches
 for dir in march_data/*/; do
   march_name=$(basename "$dir")
-  python scripts/process_watch_data.py \
+  python scripts/data/process_watch_data.py \
     --data-dir "$dir" \
     --march-id $march_id \
     --march-start-time $start_time \
@@ -547,7 +550,7 @@ Suggestions:
 
 ```bash
 # Python verbose mode
-python -v scripts/load_march_data.py --data-dir ./output --march-id 1
+python -v scripts/data/load_march_data.py --data-dir ./output --march-id 1
 
 # Check what script is doing
 python -c "import sys; print(sys.path)"

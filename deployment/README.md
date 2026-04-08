@@ -73,10 +73,10 @@ The root `.env` is now a symlink to `config/environments/.env.development`.
 cd deployment/ansible
 
 # Check connectivity
-ansible-playbook -i inventory/production playbooks/connectivity.yml
+ansible-playbook -i inventory/<environment>.yml playbooks/connectivity.yml
 
 # Deploy dashboard
-ansible-playbook -i inventory/production playbooks/march_dashboard.yml
+ansible-playbook -i inventory/<environment>.yml playbooks/march_dashboard.yml
 ```
 
 ### Deploy Database
@@ -85,17 +85,17 @@ ansible-playbook -i inventory/production playbooks/march_dashboard.yml
 cd deployment/ansible
 
 # Deploy database (schema only)
-ansible-playbook -i inventory/production playbooks/march_database.yml \
+ansible-playbook -i inventory/<environment>.yml playbooks/march_database.yml \
   -e march_seed_mode=none
 
 # Deploy database (with mock data - testing only)
-ansible-playbook -i inventory/production playbooks/march_database.yml \
+ansible-playbook -i inventory/<environment>.yml playbooks/march_database.yml \
   -e march_seed_mode=mock
 ```
 
 ### Key Variables
 
-Defined in `deployment/ansible/vars/production/vault.yml` (encrypted):
+Defined in `deployment/ansible/vars/<environment>/vault.yml` (encrypted; the directory name must match `environment_name` set in your inventory):
 - `vault_postgres_password` - PostgreSQL admin password
 - `vault_march_db_password` - March database user password
 - `vault_secret_key` - Flask secret key
@@ -218,7 +218,7 @@ docker run -p 8050:8050 --env-file .env fitonduty-march
 cd deployment/ansible
 
 # Deploy to staging/testing environment
-ansible-playbook -i inventory/testing playbooks/march_dashboard.yml
+ansible-playbook -i inventory/testing.yml playbooks/march_dashboard.yml
 ```
 
 ### 3. Deploy to Production
@@ -226,7 +226,7 @@ ansible-playbook -i inventory/testing playbooks/march_dashboard.yml
 Only after testing:
 ```bash
 cd deployment/ansible
-ansible-playbook -i inventory/production playbooks/march_dashboard.yml
+ansible-playbook -i inventory/<environment>.yml playbooks/march_dashboard.yml
 ```
 
 ---
@@ -286,6 +286,5 @@ If you have CI/CD pipelines, update:
 ## See Also
 
 - **Main README**: `../README.md`
-- **Migration Guide**: `../MIGRATION_COMPLETE.md`
 - **Ansible README**: `ansible/README.md`
 - **Scripts Documentation**: `../scripts/README.md`

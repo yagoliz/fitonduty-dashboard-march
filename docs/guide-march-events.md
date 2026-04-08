@@ -44,7 +44,7 @@ planned → completed → processing → published
 ### Method 1: Interactive Mode (Recommended)
 
 ```bash
-python scripts/manage_march_events.py create --interactive
+python scripts/events/manage_march_events.py create --interactive
 ```
 
 The script will prompt you for:
@@ -86,7 +86,7 @@ March Event: Training March Alpha
 Specify all parameters directly:
 
 ```bash
-python scripts/manage_march_events.py create \
+python scripts/events/manage_march_events.py create \
   --name "Training March Alpha" \
   --date 2025-03-15 \
   --distance 8.2 \
@@ -99,7 +99,7 @@ python scripts/manage_march_events.py create \
 ### With Custom Database
 
 ```bash
-python scripts/manage_march_events.py create --interactive \
+python scripts/events/manage_march_events.py create --interactive \
   --db-url postgresql://user:password@host:5432/dbname
 ```
 
@@ -110,7 +110,7 @@ After creating a march event, add participants:
 ### Add All Participants from March's Group
 
 ```bash
-python scripts/manage_march_events.py add-participants --march-id 1
+python scripts/events/manage_march_events.py add-participants --march-id 1
 ```
 
 This adds all participants from the march's primary group.
@@ -118,7 +118,7 @@ This adds all participants from the march's primary group.
 ### Add Participants from Specific Group
 
 ```bash
-python scripts/manage_march_events.py add-participants \
+python scripts/events/manage_march_events.py add-participants \
   --march-id 1 \
   --group "Squad Bravo"
 ```
@@ -153,7 +153,7 @@ Successfully added 3 participants!
 View all march events:
 
 ```bash
-python scripts/manage_march_events.py list
+python scripts/events/manage_march_events.py list
 ```
 
 Example output:
@@ -193,7 +193,7 @@ Update status after march completion or data processing:
 After the physical march is completed:
 
 ```bash
-python scripts/manage_march_events.py update-status \
+python scripts/events/manage_march_events.py update-status \
   --march-id 1 \
   --status completed
 ```
@@ -203,7 +203,7 @@ python scripts/manage_march_events.py update-status \
 While processing watch data:
 
 ```bash
-python scripts/manage_march_events.py update-status \
+python scripts/events/manage_march_events.py update-status \
   --march-id 1 \
   --status processing
 ```
@@ -213,7 +213,7 @@ python scripts/manage_march_events.py update-status \
 Make results visible to participants:
 
 ```bash
-python scripts/manage_march_events.py update-status \
+python scripts/events/manage_march_events.py update-status \
   --march-id 1 \
   --status published
 ```
@@ -224,7 +224,7 @@ python scripts/manage_march_events.py update-status \
 
 ```bash
 # 1. Create march event
-python scripts/manage_march_events.py create --interactive
+python scripts/events/manage_march_events.py create --interactive
 
 # Example values:
 #   Name: "Training March Alpha"
@@ -235,32 +235,32 @@ python scripts/manage_march_events.py create --interactive
 #   Status: planned
 
 # 2. Add participants
-python scripts/manage_march_events.py add-participants --march-id 1
+python scripts/events/manage_march_events.py add-participants --march-id 1
 
 # 3. Verify
-python scripts/manage_march_events.py list
+python scripts/events/manage_march_events.py list
 ```
 
 ### After March
 
 ```bash
 # 1. Mark march as completed
-python scripts/manage_march_events.py update-status --march-id 1 --status completed
+python scripts/events/manage_march_events.py update-status --march-id 1 --status completed
 
 # 2. Process watch data (see Loading March Data Guide)
-python scripts/process_watch_data.py \
+python scripts/data/process_watch_data.py \
   --data-dir ./watch_exports \
   --march-id 1 \
   --march-start-time 2025-03-15T08:00:00 \
   --output ./output
 
 # 3. Load processed data
-python scripts/load_march_data.py \
+python scripts/data/load_march_data.py \
   --data-dir ./output \
   --march-id 1
 
 # 4. Publish results
-python scripts/manage_march_events.py update-status --march-id 1 --status published
+python scripts/events/manage_march_events.py update-status --march-id 1 --status published
 ```
 
 ## Viewing March Details in Database
@@ -376,7 +376,7 @@ Set database connection:
 export DATABASE_URL="postgresql://fitonduty_march:password@host:5432/fitonduty_march"
 
 # Or specify in each command
-python scripts/manage_march_events.py create --interactive \
+python scripts/events/manage_march_events.py create --interactive \
   --db-url postgresql://user:password@host:5432/dbname
 ```
 
@@ -456,10 +456,10 @@ Use ISO 8601 format: `YYYY-MM-DD`
 export DATABASE_URL="postgresql://fitonduty_march:password@server:5432/fitonduty_march"
 
 # 1. List existing marches
-python scripts/manage_march_events.py list
+python scripts/events/manage_march_events.py list
 
 # 2. Create new march (interactive)
-python scripts/manage_march_events.py create --interactive
+python scripts/events/manage_march_events.py create --interactive
 # Enter:
 #   Name: Spring Training March
 #   Date: 2025-05-10
@@ -470,10 +470,10 @@ python scripts/manage_march_events.py create --interactive
 #   Status: planned
 
 # 3. Add participants from march's group
-python scripts/manage_march_events.py add-participants --march-id 3
+python scripts/events/manage_march_events.py add-participants --march-id 3
 
 # 4. Add additional participants from another group
-python scripts/manage_march_events.py add-participants --march-id 3 --group "Squad Bravo"
+python scripts/events/manage_march_events.py add-participants --march-id 3 --group "Squad Bravo"
 
 # 5. Verify march setup
 psql $DATABASE_URL << EOF
@@ -487,10 +487,10 @@ GROUP BY me.name;
 EOF
 
 # 6. After march completion
-python scripts/manage_march_events.py update-status --march-id 3 --status completed
+python scripts/events/manage_march_events.py update-status --march-id 3 --status completed
 
 # 7. After data processing
-python scripts/manage_march_events.py update-status --march-id 3 --status published
+python scripts/events/manage_march_events.py update-status --march-id 3 --status published
 ```
 
 ## Next Steps

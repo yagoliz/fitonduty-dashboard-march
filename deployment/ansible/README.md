@@ -24,7 +24,7 @@ Complete Ansible documentation has been moved to the centralized documentation d
 ## Running the Playbook
 
 ```bash
-ansible-playbook -i inventory/production.yml --ask-vault-pass playbooks/march_database.yml
+ansible-playbook -i inventory/<environment>.yml --ask-vault-pass playbooks/march_database.yml
 ```
 
 See [Database Setup Guide](../docs/setup-database.md) for complete instructions.
