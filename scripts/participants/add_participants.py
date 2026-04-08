@@ -28,12 +28,12 @@ from werkzeug.security import generate_password_hash
 def load_seed_file(seed_file_path):
     """Load seed file and extract participants and groups"""
     try:
-        with open(seed_file_path, 'r') as f:
+        with open(seed_file_path) as f:
             seed_data = yaml.safe_load(f)
 
         if 'participants' not in seed_data:
             print("Error: No participants section found in seed file")
-            return None, None
+            return None, None, None
 
         participants = seed_data['participants']
         groups_data = seed_data.get('groups', [])
@@ -47,6 +47,8 @@ def load_seed_file(seed_file_path):
     except yaml.YAMLError as e:
         print(f"Error parsing seed file: {e}")
         return None, None, None
+
+
 
 
 def get_database_url(args):
@@ -337,12 +339,12 @@ def main():
 
     # Show what will be added
     if new_admins:
-        print(f"\nNew admins to add:")
+        print("\nNew admins to add:")
         for a in new_admins:
             print(f"  - {a['username']}")
 
     if new_participants:
-        print(f"\nNew participants to add:")
+        print("\nNew participants to add:")
         for p in new_participants:
             print(f"  - {p['username']} -> {p['groups']}")
 
@@ -358,11 +360,12 @@ def main():
         print("Cancelled")
         sys.exit(0)
 
+    # Add admins first so create_missing_groups() can use one for created_by
+    # (and so we don't double-insert an 'admin' user from the seed file)
+    add_admins_to_database(engine, new_admins)
+
     # Create missing groups from seed file
     updated_groups = create_missing_groups(engine, seed_groups, existing_groups)
-
-    # Add admins first
-    add_admins_to_database(engine, new_admins)
 
     # Add participants
     add_participants_to_database(engine, new_participants, updated_groups)
