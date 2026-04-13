@@ -18,7 +18,7 @@ import argparse
 import json
 import logging
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional
 
@@ -61,6 +61,7 @@ class WatchDataProcessor:
         end_coords: Optional[tuple[float, float]] = None,
         gps_tolerance_m: float = 50.0,
         gps_aggregation_interval_s: int = 5,
+        min_gps_crossing_delay_s: int = 1800,
     ):
         self.data_dir = Path(data_dir)
         self.march_id = march_id
@@ -71,6 +72,7 @@ class WatchDataProcessor:
         self.gps_tolerance_m = gps_tolerance_m
         self.gps_crossing_times = {}  # Will store {participant_id: {'start': datetime, 'end': datetime}}
         self.gps_aggregation_interval_s = gps_aggregation_interval_s
+        self.min_gps_crossing_delay_s = min_gps_crossing_delay_s
 
         if not self.data_dir.exists():
             raise FileNotFoundError(f"Data directory not found: {data_dir}")
@@ -240,12 +242,20 @@ class WatchDataProcessor:
                 crossing_times['start'] = start_time
                 logger.info(f"{participant_id}: Start crossing at {start_time}")
 
-        # Find end crossing (search from start crossing onwards if found)
+        # Find end crossing (search from start crossing + minimum delay onwards if found)
         if self.end_coords:
             search_df = gps_df
             if 'start' in crossing_times:
-                # Only search GPS points after start crossing
-                search_df = gps_df[gps_df['timestamp'] > crossing_times['start']]
+                # Only search GPS points after start crossing + minimum delay
+                # This prevents detecting the end too early when start and end coordinates are the same or close
+                earliest_end = crossing_times['start'] + timedelta(seconds=self.min_gps_crossing_delay_s)
+                search_df = gps_df[gps_df['timestamp'] >= earliest_end]
+                if search_df.empty:
+                    logger.warning(
+                        f"{participant_id}: No GPS data found after minimum crossing delay "
+                        f"({self.min_gps_crossing_delay_s}s after start). "
+                        f"Consider reducing --min-gps-crossing-delay."
+                    )
 
             end_time = self.find_gps_crossing(search_df, self.end_coords, self.gps_tolerance_m)
             if end_time:
@@ -1411,6 +1421,13 @@ def main():
     )
 
     parser.add_argument(
+        "--min-gps-crossing-delay",
+        type=int,
+        default=1800,
+        help="Minimum time in seconds between start and end GPS crossings (default: 1800 = 30 min)"
+    )
+
+    parser.add_argument(
         "--output", default="./data/output", help="Output directory for CSV files (default: ./data/output)"
     )
 
@@ -1446,6 +1463,7 @@ def main():
 
     if start_coords or end_coords:
         logger.info(f"GPS trimming tolerance: {args.gps_tolerance}m")
+        logger.info(f"Minimum GPS crossing delay: {args.min_gps_crossing_delay}s")
 
     logger.info(f"GPS aggregation interval: {args.gps_aggregation_interval}s")
 
@@ -1460,6 +1478,7 @@ def main():
             end_coords=end_coords,
             gps_tolerance_m=args.gps_tolerance,
             gps_aggregation_interval_s=args.gps_aggregation_interval,
+            min_gps_crossing_delay_s=args.min_gps_crossing_delay,
         )
 
         # Process all participants
