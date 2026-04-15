@@ -719,6 +719,7 @@ import sys
 from pathlib import Path
 from datetime import datetime
 from typing import Optional
+from zoneinfo import ZoneInfo
 
 
 # Configure logging
@@ -727,6 +728,8 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+TIMEZONE = ZoneInfo("Europe/Zurich")
 
 
 class AccelerometerStepProcessor:
@@ -832,8 +835,10 @@ class AccelerometerStepProcessor:
                 logger.error(f"Missing required columns in {acc_file}. Required: {required_cols}")
                 return None
 
-            # We need advance the index by 1 hour so that it matches watch data
-            df_acc.index += pd.Timedelta(hours=1)
+            # Convert UTC timestamps to Europe/Zurich local time (naive)
+            if df_acc.index.tz is None:
+                df_acc.index = df_acc.index.tz_localize("UTC")
+            df_acc.index = df_acc.index.tz_convert(TIMEZONE).tz_localize(None)
 
             # Use index as timestamp if no timestamp column
             if 'timestamp' not in df_acc.columns:

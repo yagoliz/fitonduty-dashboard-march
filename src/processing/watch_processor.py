@@ -19,6 +19,7 @@ import json
 import logging
 import sys
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 from pathlib import Path
 from typing import Optional
 
@@ -46,6 +47,8 @@ except ImportError:
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
+
+TIMEZONE = ZoneInfo("Europe/Zurich")
 
 
 class WatchDataProcessor:
@@ -468,7 +471,10 @@ class WatchDataProcessor:
             date_str = row.get("Date", "")
             time_str = row.get("Start time", "")
             datetime_str = f"{date_str} {time_str}"
-            start_time = pd.to_datetime(datetime_str, format="%d.%m.%Y %H:%M:%S", errors="coerce")
+            start_time = pd.to_datetime(datetime_str, format="%Y-%m-%d %H:%M:%S", errors="coerce")
+
+            if pd.isna(start_time):
+                start_time = pd.to_datetime(datetime_str, format="%d.%m.%Y %H:%M:%S", errors="coerce")
 
             if pd.isna(start_time):
                 # Try alternative formats with dayfirst=True
@@ -478,9 +484,9 @@ class WatchDataProcessor:
                 logger.error(f"Could not parse date/time from {csv_file.name}: '{datetime_str}'")
                 return pd.DataFrame(), {}
 
-            # Make timezone-naive (remove timezone if present)
+            # Convert to Europe/Zurich local time (naive) if timezone-aware
             if start_time.tz is not None:
-                start_time = start_time.tz_localize(None)
+                start_time = start_time.tz_convert(TIMEZONE).tz_localize(None)
 
         except Exception as e:
             logger.error(f"Error parsing date/time from {csv_file.name}: {e}")
@@ -592,14 +598,14 @@ class WatchDataProcessor:
             for track in gpx.tracks:
                 for segment in track.segments:
                     for point in segment.points:
-                        # Convert timestamp to timezone-naive for consistency
+                        # Convert timestamp to Europe/Zurich local time (naive)
                         timestamp = point.time
                         if (
                             timestamp is not None
                             and hasattr(timestamp, "tzinfo")
                             and timestamp.tzinfo is not None
                         ):
-                            timestamp = timestamp.replace(tzinfo=None)
+                            timestamp = timestamp.astimezone(TIMEZONE).replace(tzinfo=None)
 
                         points.append(
                             {

@@ -42,7 +42,8 @@ class MarchDataMerger:
     def __init__(self, watch_data_file: Path, step_data_file: Path,
                  merge_on: str = 'timestamp', tolerance: Optional[float] = None,
                  watch_summary_file: Optional[Path] = None,
-                 step_summary_file: Optional[Path] = None):
+                 step_summary_file: Optional[Path] = None,
+                 temp_summary_file: Optional[Path] = None):
         """
         Initialize the merger
 
@@ -61,6 +62,8 @@ class MarchDataMerger:
             Path to march_health_metrics.csv (optional)
         step_summary_file : Optional[Path]
             Path to march_step_summary.csv (optional)
+        temp_summary_file : Optional[Path]
+            Path to march_temp_summary.csv (optional)
         """
         self.watch_data_file = Path(watch_data_file)
         self.step_data_file = Path(step_data_file)
@@ -68,6 +71,7 @@ class MarchDataMerger:
         self.tolerance = tolerance
         self.watch_summary_file = Path(watch_summary_file) if watch_summary_file else None
         self.step_summary_file = Path(step_summary_file) if step_summary_file else None
+        self.temp_summary_file = Path(temp_summary_file) if temp_summary_file else None
 
         # Validate files exist
         if not self.watch_data_file.exists():
@@ -82,6 +86,9 @@ class MarchDataMerger:
         if self.step_summary_file and not self.step_summary_file.exists():
             logger.warning(f"Step summary file not found: {step_summary_file}")
             self.step_summary_file = None
+        if self.temp_summary_file and not self.temp_summary_file.exists():
+            logger.warning(f"Temp summary file not found: {temp_summary_file}")
+            self.temp_summary_file = None
 
         # Set default tolerance based on merge column
         if self.tolerance is None:
@@ -474,6 +481,36 @@ class MarchDataMerger:
                     if replaced_count > 0:
                         logger.info(f"  Replaced {replaced_count} watch-based step counts with accelerometer data")
 
+            # Merge temp summary if available
+            if self.temp_summary_file:
+                logger.info(f"Loading temp summary from {self.temp_summary_file}")
+                df_temp_summary = pd.read_csv(self.temp_summary_file)
+                logger.info(f"Loaded {len(df_temp_summary)} temp summary records")
+
+                temp_columns_to_add = ['march_id', 'user_id']
+                for col in ['avg_core_temp', 'min_core_temp', 'max_core_temp', 'temp_readings_count']:
+                    if col in df_temp_summary.columns:
+                        temp_columns_to_add.append(col)
+
+                df_temp_subset = df_temp_summary[temp_columns_to_add].copy()
+
+                # Drop any pre-existing temp columns from base to avoid _x/_y suffixes
+                overlap = [c for c in temp_columns_to_add
+                           if c not in ('march_id', 'user_id') and c in df_merged.columns]
+                if overlap:
+                    df_merged = df_merged.drop(columns=overlap)
+
+                df_merged = pd.merge(
+                    df_merged,
+                    df_temp_subset,
+                    on=['march_id', 'user_id'],
+                    how='left'
+                )
+
+                if 'avg_core_temp' in df_merged.columns:
+                    temp_data_count = df_merged['avg_core_temp'].notna().sum()
+                    logger.info(f"Merged temp data: {temp_data_count}/{len(df_merged)} participants have temp data")
+
             # Save merged health metrics
             output_dir = Path(output_dir)
             output_dir.mkdir(parents=True, exist_ok=True)
@@ -546,6 +583,11 @@ Examples:
     )
 
     parser.add_argument(
+        '--temp-summary',
+        help='Path to march_temp_summary.csv (optional, for summary merge)'
+    )
+
+    parser.add_argument(
         '--merge-on',
         default='timestamp',
         choices=['timestamp', 'timestamp_minutes'],
@@ -581,7 +623,8 @@ Examples:
             merge_on=args.merge_on,
             tolerance=args.tolerance,
             watch_summary_file=args.watch_summary,
-            step_summary_file=args.step_summary
+            step_summary_file=args.step_summary,
+            temp_summary_file=args.temp_summary
         )
 
         # Load data
@@ -598,7 +641,7 @@ Examples:
         merger.save_merged_data(df_merged, args.output, args.output_filename)
 
         # Merge summary files if provided
-        if args.watch_summary or args.step_summary:
+        if args.watch_summary or args.step_summary or args.temp_summary:
             logger.info("\nMerging summary files...")
             merger.merge_summary_files(args.output)
 

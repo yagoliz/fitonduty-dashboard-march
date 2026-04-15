@@ -9,6 +9,7 @@ import json
 import logging
 import sys
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from pathlib import Path
 
 import pandas as pd
@@ -16,6 +17,8 @@ import pandas as pd
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
+
+TIMEZONE = ZoneInfo("Europe/Zurich")
 
 
 class TemperatureProcessor:
@@ -125,8 +128,10 @@ class TemperatureProcessor:
                 )
                 return None
 
-            # We need advance the index by 1 hour so that it matches watch data
-            df_temp.index += pd.Timedelta(hours=1)
+            # Convert UTC timestamps to Europe/Zurich local time (naive)
+            if df_temp.index.tz is None:
+                df_temp.index = df_temp.index.tz_localize("UTC")
+            df_temp.index = df_temp.index.tz_convert(TIMEZONE).tz_localize(None)
 
             # Use index as timestamp if no timestamp column
             if "timestamp" not in df_temp.columns:
