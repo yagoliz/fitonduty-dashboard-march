@@ -24,6 +24,7 @@ all:
     
     environment_name: example
     flask_env: testing
+    dashboard_name: example
     
     # Database configuration (optional - defaults provided)
     db_name: fitonduty_march
