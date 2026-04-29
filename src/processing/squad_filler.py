@@ -137,12 +137,14 @@ def _build_timeseries_rows(
     user_id: str,
     df_hr: pd.DataFrame,
     reference_start: datetime,
-    squad_avg_pace_kmh: float | None = None,
+    reference_timeseries: pd.DataFrame | None = None,
 ) -> pd.DataFrame:
     """Resample HR to 1-minute means matching the watch timeseries layout.
 
-    If a squad average pace is supplied, fill speed_kmh as a constant and
-    cumulative_distance_km as a linear ramp so the dashboard has non-NaN values.
+    Non-watch participants in a squad walked alongside the reference watch
+    participant, so we copy the reference's per-minute speed_kmh and
+    cumulative_distance_km (matched on timestamp) instead of assuming a
+    constant pace.
     """
     resampled = (
         df_hr.rename(columns={"BPM": "heart_rate"})
@@ -157,9 +159,14 @@ def _build_timeseries_rows(
     )
     resampled = resampled[resampled["timestamp_minutes"] >= 0]
 
-    if squad_avg_pace_kmh is not None and not pd.isna(squad_avg_pace_kmh):
-        speed = float(squad_avg_pace_kmh)
-        cumulative_distance = resampled["timestamp_minutes"] / 60.0 * speed
+    if reference_timeseries is not None and not reference_timeseries.empty:
+        ref_cols = reference_timeseries[
+            ["timestamp", "speed_kmh", "cumulative_distance_km"]
+        ].copy()
+        ref_cols["timestamp"] = pd.to_datetime(ref_cols["timestamp"])
+        resampled = resampled.merge(ref_cols, on="timestamp", how="left")
+        speed = resampled["speed_kmh"]
+        cumulative_distance = resampled["cumulative_distance_km"]
     else:
         speed = np.nan
         cumulative_distance = np.nan
@@ -183,8 +190,8 @@ def _build_health_metrics_row(
     march_id: int,
     user_id: str,
     df_hr: pd.DataFrame,
-    squad_avg_pace_kmh: float | None = None,
-    squad_avg_distance_km: float | None = None,
+    reference_pace_kmh: float | None = None,
+    reference_distance_km: float | None = None,
 ) -> dict:
     hr = df_hr["BPM"].dropna()
     duration_minutes = int(
@@ -198,13 +205,13 @@ def _build_health_metrics_row(
         "total_steps": np.nan,
         "march_duration_minutes": duration_minutes,
         "avg_pace_kmh": (
-            round(float(squad_avg_pace_kmh), 2)
-            if squad_avg_pace_kmh is not None and not pd.isna(squad_avg_pace_kmh)
+            round(float(reference_pace_kmh), 2)
+            if reference_pace_kmh is not None and not pd.isna(reference_pace_kmh)
             else np.nan
         ),
         "estimated_distance_km": (
-            round(float(squad_avg_distance_km), 2)
-            if squad_avg_distance_km is not None and not pd.isna(squad_avg_distance_km)
+            round(float(reference_distance_km), 2)
+            if reference_distance_km is not None and not pd.isna(reference_distance_km)
             else np.nan
         ),
         "data_completeness": round(float(hr.notna().sum()) / max(len(df_hr), 1), 3),
@@ -305,21 +312,22 @@ def fill_non_watch(
         ref_start = pd.to_datetime(ref_times["start"]).to_pydatetime()
         ref_end = pd.to_datetime(ref_times["end"]).to_pydatetime()
 
-        squad_watch_health = df_health[df_health["user_id"].isin(squad_watch)]
-        squad_avg_pace = (
-            squad_watch_health["avg_pace_kmh"].mean()
-            if "avg_pace_kmh" in squad_watch_health.columns
+        ref_timeseries = df_timeseries[df_timeseries["user_id"] == reference]
+        ref_health = df_health[df_health["user_id"] == reference]
+        ref_pace = (
+            float(ref_health["avg_pace_kmh"].iloc[0])
+            if not ref_health.empty and "avg_pace_kmh" in ref_health.columns
             else None
         )
-        squad_avg_distance = (
-            squad_watch_health["estimated_distance_km"].mean()
-            if "estimated_distance_km" in squad_watch_health.columns
+        ref_distance = (
+            float(ref_health["estimated_distance_km"].iloc[0])
+            if not ref_health.empty and "estimated_distance_km" in ref_health.columns
             else None
         )
         logger.info(
             f"Squad {squad}: filling {len(squad_missing)} non-watch participants from {reference} "
-            f"(squad avg pace={squad_avg_pace:.2f} km/h, distance={squad_avg_distance:.2f} km)"
-            if squad_avg_pace is not None and not pd.isna(squad_avg_pace)
+            f"(reference pace={ref_pace:.2f} km/h, distance={ref_distance:.2f} km)"
+            if ref_pace is not None and not pd.isna(ref_pace)
             else f"Squad {squad}: filling {len(squad_missing)} non-watch participants from {reference}"
         )
 
@@ -334,7 +342,7 @@ def fill_non_watch(
                 target_id,
                 df_hr,
                 ref_start,
-                squad_avg_pace_kmh=squad_avg_pace,
+                reference_timeseries=ref_timeseries,
             )
             if ts_rows.empty:
                 logger.warning(f"{target_id}: HR produced zero timeseries rows")
@@ -350,8 +358,8 @@ def fill_non_watch(
                     march_id,
                     target_id,
                     df_hr,
-                    squad_avg_pace_kmh=squad_avg_pace,
-                    squad_avg_distance_km=squad_avg_distance,
+                    reference_pace_kmh=ref_pace,
+                    reference_distance_km=ref_distance,
                 )
             )
             new_zones_rows.append(_build_hr_zones_row(march_id, target_id, df_hr))
