@@ -7,6 +7,7 @@ requires-python = ">=3.12"
 dependencies = [
     "dash>=3.2.0",
     "dash-bootstrap-components>=2.0.4",
+    "fitdecode>=0.11.0",
     "flask-login>=0.6.3",
     "flask-session>=0.8.0",
     "flask-sqlalchemy>=3.1.1",
@@ -33,6 +34,7 @@ fitonduty-merge-data = "src.processing.data_merger:main"
 [dependency-groups]
 dev = [
     "black>=25.1.0",
+    "matplotlib>=3.10.9",
     "pytest>=8.4.2",
     "ruff>=0.12.12",
 ]
