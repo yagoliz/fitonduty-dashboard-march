@@ -748,6 +748,9 @@ class WatchDataProcessor:
                 [col for col in columns if col in gps_positions_df.columns]
             ]
 
+            # Rename altitude to elevation
+            gps_positions_df.rename(columns={"altitude": "elevation"}, inplace=True)
+
             if "timestamp_minutes" in gps_positions_df.columns:
                 negative_count = (gps_positions_df["timestamp_minutes"] < 0).sum()
                 if negative_count > 0:
