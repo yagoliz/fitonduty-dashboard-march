@@ -187,23 +187,37 @@ def create_supervisor_march_view(march_id: int, march_info):
 def create_participant_march_view(march_id: int, march_info):
     """Create participant view with personal data and limited group leaderboard"""
 
-    # Get participant's own march data
-    user_summary = get_participant_march_summary(march_id, current_user.id)
-
-    if not user_summary:
-        return dbc.Alert(
-            "No march data found for your participation.",
-            color="warning"
-        )
-
-    # Get leaderboard (participants can see overall rankings but not detailed personal data of others)
-    leaderboard = get_march_leaderboard(march_id, 'effort_score')
-
     # Back button
     back_button = _create_back_button()
 
     # March header
     march_header = _create_march_header(march_info, show_admin_controls=False)
+
+    if march_info['status'] in ('planned', 'draft'):
+        return html.Div([
+            back_button,
+            march_header,
+            dbc.Alert([
+                html.H5("This march hasn't taken place yet.", className="alert-heading mb-1"),
+                html.P("Performance data will be available after the march is completed and processed.", className="mb-0")
+            ], color="info", className="mt-3")
+        ])
+
+    # Get participant's own march data
+    user_summary = get_participant_march_summary(march_id, current_user.id)
+
+    if not user_summary:
+        return html.Div([
+            back_button,
+            march_header,
+            dbc.Alert(
+                "No march data found for your participation.",
+                color="warning"
+            )
+        ])
+
+    # Get leaderboard (participants can see overall rankings but not detailed personal data of others)
+    leaderboard = get_march_leaderboard(march_id, 'effort_score')
 
     # Personal performance card
     personal_card = _create_personal_performance_card(
@@ -234,7 +248,9 @@ def create_participant_march_view(march_id: int, march_info):
 def _get_status_badge(march, user_role):
     """Get appropriate status badge for march"""
     if user_role == 'participant' and hasattr(march, 'user_completed'):
-        if march['user_completed']:
+        if march['status'] in ('planned', 'draft'):
+            return dbc.Badge("📋 Planned", color="info", className="ms-2")
+        elif march['user_completed']:
             return dbc.Badge("✅ Completed", color="success", className="ms-2")
         else:
             return dbc.Badge("❌ DNF", color="danger", className="ms-2")
@@ -478,7 +494,7 @@ def _create_personal_performance_card(user_summary, leaderboard_df=None, detail_
         ], className="kpi-chip")),
         dbc.Col(html.Div([
             html.I(className="fas fa-clock me-2"),
-            html.Span(fmt(finish_time/60, "{:.2f} h"), className="kpi-value"),
+            html.Span(fmt(finish_time / 60 if finish_time is not None else None, "{:.2f} h"), className="kpi-value"),
             html.Div("Time", className="kpi-label")
         ], className="kpi-chip")),
         dbc.Col(html.Div([
