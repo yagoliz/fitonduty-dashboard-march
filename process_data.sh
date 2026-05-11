@@ -292,7 +292,8 @@ if [ "${SKIP_LOAD}" = false ]; then
 
     uv run scripts/data/load_march_data.py \
         --data-dir "${OUTPUT_ROOT}/" \
-        --march-id "${MARCH_ID}"
+        --march-id "${MARCH_ID}" \
+        --yes
 fi
 
 # --- 9. Completion ----------------------------------------------------------

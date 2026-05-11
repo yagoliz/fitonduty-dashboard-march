@@ -618,6 +618,12 @@ def main():
         help='Show what would be loaded without making changes'
     )
 
+    parser.add_argument(
+        '--yes',
+        action='store_true',
+        help='Accept automatically and skip the prompt'
+    )
+
     args = parser.parse_args()
 
     print("=== Load March Data from CSVs ===\n")
@@ -679,7 +685,7 @@ def main():
 
     if args.dry_run:
         print("\n🔍 DRY RUN - No changes will be made")
-        print(f"\nWould load:")
+        print("\nWould load:")
         if metrics_df is not None:
             print(f"  - {len(metrics_df)} health metrics records")
         if hr_zones_df is not None:
@@ -693,10 +699,11 @@ def main():
         sys.exit(0)
 
     # Confirm before proceeding
-    response = input(f"\nProceed with loading data for march ID {args.march_id}? (y/N): ")
-    if response.lower() != 'y':
-        print("Cancelled")
-        sys.exit(0)
+    if not args.yes:
+        response = input(f"\nProceed with loading data for march ID {args.march_id}? (y/N): ")
+        if response.lower() != 'y':
+            print("Cancelled")
+            sys.exit(0)
 
     # Load data into database
     try:
