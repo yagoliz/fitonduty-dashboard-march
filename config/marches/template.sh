@@ -9,8 +9,7 @@
 # =============================================================================
 
 # --- Required: March Identity -----------------------------------------------
-# The database ID for this march. Get this from the march_events table or
-# from the event organizer.
+# The database ID for this march. Get this from the march_events table
 MARCH_ID=""
 
 # Human-readable name for this march (used in logging and documentation)
