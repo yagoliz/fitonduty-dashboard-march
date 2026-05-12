@@ -221,26 +221,26 @@ def print_summary(config, campaign_name):
     total_groups = len(config['groups'])
     total_participants = len(config['participants'])
 
-    print(f"\n📊 Configuration Summary for {campaign_name}:")
-    print(f"   └── Admin users: {len(config['admins'])}")
-    print(f"   └── Groups: {total_groups}")
-    print(f"   └── Participants: {total_participants}")
+    print(f"\nConfiguration Summary for {campaign_name}:")
+    print(f"  └── Admin users: {len(config['admins'])}")
+    print(f"  └── Groups: {total_groups}")
+    print(f"  └── Participants: {total_participants}")
 
-    print("\n🔐 Generated Credentials:")
+    print("\nGenerated Credentials:")
     for admin in config['admins']:
         print(f"   Admin '{admin['username']}': {admin['password']}")
 
-    print("\n📁 Group Structure:")
+    print("\nGroup Structure:")
     for group in config['groups']:
         group_name = group['name']
         group_participants = [p['username'] for p in config['participants'] if p['groups'] == group_name]
-        print(f"   📂 {group_name} ({len(group_participants)} participants)")
+        print(f"   {group_name} ({len(group_participants)} participants)")
         for participant in group_participants[:3]:
-            print(f"      └── {participant}")
+            print(f"    └── {participant}")
         if len(group_participants) > 3:
-            print(f"      └── ... and {len(group_participants) - 3} more")
+            print(f"    └── ... and {len(group_participants) - 3} more")
 
-    print("\n⚠️  SECURITY REMINDER:")
+    print("\nSECURITY REMINDER:")
     print("   • Change the admin password before production use")
     print("   • Keep this configuration file secure")
     print("   • Store securely and never commit passwords to version control")
@@ -314,7 +314,7 @@ Examples:
 
         # Get directory structure
         if args.csv:
-            print(f"📊 Reading participants from CSV file: {args.csv}")
+            print(f"Reading participants from CSV file: {args.csv}")
             directory_structure = scan_csv_file(args.csv)
         elif args.interactive:
             directory_structure = interactive_input()
@@ -328,7 +328,7 @@ Examples:
 
         print(f"✓ Found {len(directory_structure)} groups")
 
-        print(f"🏗️  Generating seed configuration for {args.campaign_name}")
+        print(f" Generating seed configuration for {args.campaign_name}")
         config = create_seed_config(
             args.campaign_name,
             directory_structure,
@@ -338,15 +338,15 @@ Examples:
         print_summary(config, args.campaign_name)
 
         if args.dry_run:
-            print(f"\n🔍 DRY RUN - Configuration would be saved to: {output_path}")
+            print(f"\nDRY RUN - Configuration would be saved to: {output_path}")
             print("\nTo actually generate the file, run without --dry-run")
         else:
-            print("\n💾 Saving configuration...")
+            print("\nSaving configuration...")
             save_seed_config(config, output_path)
-            print("\n✅ March seed data generated successfully!")
-            print(f"\nNext steps:")
+            print( "\nMarch seed data generated successfully!")
+            print( "\nNext steps:")
             print(f"1. Review the generated file: {output_path}")
-            print(f"2. Customize passwords and settings as needed")
+            print( "2. Customize passwords and settings as needed")
             print(f"3. Use with: python scripts/add_participants.py --seed-file {output_path}")
 
     except FileNotFoundError as e:
