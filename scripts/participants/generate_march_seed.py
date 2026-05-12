@@ -59,7 +59,7 @@ def scan_csv_file(csv_path):
     structure = {}
 
     try:
-        with open(csv_file, 'r', newline='', encoding='utf-8') as file:
+        with open(csv_file, newline='', encoding='utf-8') as file:
             sample = file.read(1024)
             file.seek(0)
 
@@ -70,7 +70,7 @@ def scan_csv_file(csv_path):
 
             if has_header:
                 header = next(reader)
-                print(f"📋 Detected CSV header: {header}")
+                print(f"Detected CSV header: {header}")
 
             for row_num, row in enumerate(reader, start=2 if has_header else 1):
                 if len(row) < 2:
@@ -93,7 +93,7 @@ def scan_csv_file(csv_path):
                     print(f"Warning: Duplicate participant '{participant_id}' in group '{group_name}', skipping")
 
     except Exception as e:
-        raise Exception(f"Error reading CSV file: {e}")
+        raise RuntimeError(f"Error reading CSV file: {e}") from e
 
     return structure
 
