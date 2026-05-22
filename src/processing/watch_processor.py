@@ -373,8 +373,14 @@ class WatchDataProcessor:
             if "distance_km" not in merged_df.columns:
                 merged_df = self.calculate_speed_from_gps(merged_df)
         elif "cumulative_distance_km" not in merged_df.columns and "distance" in merged_df.columns:
-            # TCX distance is cumulative in meters
+            # TCX distance is cumulative in meters but resets per activity
             merged_df["cumulative_distance_km"] = merged_df["distance"] / 1000.0
+            # Fix resets from multiple concatenated activities
+            dist = merged_df["cumulative_distance_km"]
+            resets = dist.diff() < -0.1
+            if resets.any():
+                pre_reset_values = dist.shift(1).where(resets, 0)
+                merged_df["cumulative_distance_km"] = dist + pre_reset_values.cumsum()
 
         # Calculate cumulative steps from cadence if no steps column
         if "steps" not in merged_df.columns and "cadence" in merged_df.columns:

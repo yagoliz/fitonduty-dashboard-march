@@ -212,10 +212,11 @@ class MarchDataMerger:
 
             # Sanity check: typical stride length is 0.4m to 1.5m
             if 0.4 <= avg_stride_length_m <= 1.5:
-                # Find rows with distance but no steps
+                # Find rows with distance but no steps from either source
                 needs_estimation = (
                     merged['cumulative_distance_km'].notna() &
                     merged['steps_acc'].isna() &
+                    (merged['steps'].isna() | (merged['steps'] == 0)) &
                     (merged['cumulative_distance_km'] > 0)
                 )
 
