@@ -21,6 +21,7 @@ sys.path.insert(0, str(project_root))
 import pandas as pd  # noqa: E402
 
 from src.processing.parsers import (  # noqa: E402
+    TIMEZONE,
     find_participant_files,
     parse_fit,
     parse_gpx,
@@ -124,6 +125,11 @@ def main():
         default="./data/output/parquet",
         help="Output directory for Parquet files (default: ./data/output/parquet)",
     )
+    parser.add_argument(
+        "--utc",
+        action="store_true",
+        help="Export timestamps in UTC instead of local time (Europe/Zurich)",
+    )
     args = parser.parse_args()
 
     data_dir = Path(args.data_dir)
@@ -141,6 +147,14 @@ def main():
         if df.empty:
             logger.warning(f"{pid}: skipped — no data")
             continue
+
+        if args.utc:
+            df["timestamp"] = (
+                df["timestamp"]
+                .dt.tz_localize(TIMEZONE)
+                .dt.tz_convert("UTC")
+                .dt.tz_localize(None)
+            )
 
         out_path = output_dir / f"{pid}.parquet"
         df.to_parquet(out_path, index=False)
