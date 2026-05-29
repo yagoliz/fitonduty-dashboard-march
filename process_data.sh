@@ -14,6 +14,7 @@
 #   --skip-load           Skip database loading step
 #   --env-file <path>     Override environment file for database loading
 #   --participants <path> Override participants CSV file
+#   --dropouts <path>     Override dropouts CSV file (auto-discovers if not set)
 #   -h, --help            Show this help message
 #
 # Examples:
@@ -40,6 +41,7 @@ SKIP_PROCESS=false
 SKIP_LOAD=false
 ENV_FILE_OVERRIDE=""
 PARTICIPANTS_OVERRIDE=""
+DROPOUTS_OVERRIDE=""
 
 while [ $# -gt 0 ]; do
     case "$1" in
@@ -65,6 +67,10 @@ while [ $# -gt 0 ]; do
             ;;
         --participants)
             PARTICIPANTS_OVERRIDE="$2"
+            shift 2
+            ;;
+        --dropouts)
+            DROPOUTS_OVERRIDE="$2"
             shift 2
             ;;
         -h|--help)
@@ -155,6 +161,17 @@ else
     fi
 fi
 
+# Determine dropouts file
+if [ -n "${DROPOUTS_OVERRIDE}" ]; then
+    DROPOUTS_FILE="${DROPOUTS_OVERRIDE}"
+elif [ -f "config/seed-data/dropouts_${DATE_YYYYMMDD}.csv" ]; then
+    DROPOUTS_FILE="config/seed-data/dropouts_${DATE_YYYYMMDD}.csv"
+elif [ -f "dropouts.csv" ]; then
+    DROPOUTS_FILE="dropouts.csv"
+else
+    DROPOUTS_FILE=""
+fi
+
 # --- 5. Configuration Summary -----------------------------------------------
 
 echo "==================================================================="
@@ -177,6 +194,7 @@ echo "  Station Dir:      ${STATION_DIR}"
 echo "  Output Dir:       ${OUTPUT_DIR}"
 echo "  Participants CSV: ${PARTICIPANTS_CSV}"
 echo "  Env File:         ${ENV_FILE}"
+echo "  Dropouts File:    ${DROPOUTS_FILE:-(none)}"
 echo ""
 echo "Options:"
 echo "  GPS Tolerance:    ${GPS_TOLERANCE}"
@@ -217,18 +235,18 @@ fi
 # --- 7. Processing Steps ----------------------------------------------------
 
 if [ "${SKIP_PROCESS}" = false ]; then
-    echo ""
-    echo "--- Step 1: Process Watch Data ---"
-    uv run scripts/data/process_watch_data.py \
-        --data-dir "${WATCH_DATA_DIR}" \
-        --march-id "${MARCH_ID}" \
-        --start-lat "${START_LAT}" \
-        --start-lon "${START_LON}" \
-        --end-lat "${END_LAT}" \
-        --end-lon "${END_LON}" \
-        --gps-tolerance "${GPS_TOLERANCE}" \
-        --min-gps-crossing-delay "${MIN_GPS_CROSSING_DELAY}" \
-        --output "${OUTPUT_DIR}"
+    # echo ""
+    # echo "--- Step 1: Process Watch Data ---"
+    # uv run scripts/data/process_watch_data.py \
+    #     --data-dir "${WATCH_DATA_DIR}" \
+    #     --march-id "${MARCH_ID}" \
+    #     --start-lat "${START_LAT}" \
+    #     --start-lon "${START_LON}" \
+    #     --end-lat "${END_LAT}" \
+    #     --end-lon "${END_LON}" \
+    #     --gps-tolerance "${GPS_TOLERANCE}" \
+    #     --min-gps-crossing-delay "${MIN_GPS_CROSSING_DELAY}" \
+    #     --output "${OUTPUT_DIR}"
 
     echo ""
     echo "--- Step 2: Fill Non-Watch Data ---"
@@ -274,11 +292,24 @@ if [ "${SKIP_PROCESS}" = false ]; then
     cp "${OUTPUT_DIR}/march_temp_data.csv" "${OUTPUT_ROOT}/march_temp_data.csv"
 fi
 
-# --- 8. Database Loading ----------------------------------------------------
+# --- 8. Apply Dropout Filtering ---------------------------------------------
+
+if [ -n "${DROPOUTS_FILE}" ] && [ -f "${DROPOUTS_FILE}" ]; then
+    echo ""
+    echo "--- Step 6: Apply Dropout Filtering ---"
+    uv run scripts/data/apply_dropouts.py \
+        --dropouts "${DROPOUTS_FILE}" \
+        --data-dir "${OUTPUT_ROOT}/"
+else
+    echo ""
+    echo "--- Step 6: Apply Dropout Filtering (skipped - no dropouts file) ---"
+fi
+
+# --- 9. Database Loading ----------------------------------------------------
 
 if [ "${SKIP_LOAD}" = false ]; then
     echo ""
-    echo "--- Step 6: Load Data to Database ---"
+    echo "--- Step 7: Load Data to Database ---"
 
     if [ -f "${ENV_FILE}" ]; then
         echo "Loading environment from: ${ENV_FILE}"
@@ -296,7 +327,7 @@ if [ "${SKIP_LOAD}" = false ]; then
         --yes
 fi
 
-# --- 9. Completion ----------------------------------------------------------
+# --- 10. Completion ---------------------------------------------------------
 
 echo ""
 echo "==================================================================="

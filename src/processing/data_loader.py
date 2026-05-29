@@ -20,6 +20,7 @@ Usage:
 """
 
 import argparse
+import json
 import os
 import sys
 from pathlib import Path
@@ -583,6 +584,35 @@ def parse_custom_mapping(mapping_str):
     return mapping if mapping else None
 
 
+def mark_dropouts(conn, march_id, dropouts_file, user_mapping):
+    """Set completed=false for participants listed in the dropouts JSON."""
+    dropouts_path = Path(dropouts_file)
+    if not dropouts_path.exists():
+        print(f"  Dropouts file not found: {dropouts_file}, skipping")
+        return 0
+
+    with open(dropouts_path) as f:
+        dropouts = json.load(f)
+
+    count = 0
+    for entry in dropouts:
+        participant_id = entry["participant"]
+        db_user_id = user_mapping.get(participant_id)
+        if db_user_id is None:
+            print(f"  Warning: dropout participant {participant_id} not found in user mapping")
+            continue
+        conn.execute(text("""
+            UPDATE march_participants
+            SET completed = FALSE
+            WHERE march_id = :march_id AND user_id = :user_id
+        """), {"march_id": march_id, "user_id": db_user_id})
+        count += 1
+        print(f"  Marked {participant_id} as did-not-finish ({entry.get('reason', '')})")
+
+    print(f"  Marked {count} participants as did-not-finish")
+    return count
+
+
 def main():
     parser = argparse.ArgumentParser(
         description='Load processed watch data CSVs into march dashboard database',
@@ -622,6 +652,11 @@ def main():
         '--yes',
         action='store_true',
         help='Accept automatically and skip the prompt'
+    )
+
+    parser.add_argument(
+        '--dropouts-file',
+        help='Path to march_dropouts.json (marks dropout participants as not completed)'
     )
 
     args = parser.parse_args()
@@ -725,6 +760,11 @@ def main():
 
             if temp_df is not None:
                 total_loaded += load_march_core_temp_data(conn, temp_df, args.march_id)
+
+            dropouts_file = args.dropouts_file or str(data_dir / "march_dropouts.json")
+            if Path(dropouts_file).exists():
+                print("\nApplying dropout status...")
+                mark_dropouts(conn, args.march_id, dropouts_file, user_mapping)
 
             print(f"\n✅ Successfully loaded {total_loaded} total records!")
             print(f"\nMarch {args.march_id} data has been updated.")
