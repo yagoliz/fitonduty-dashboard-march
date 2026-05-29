@@ -5,16 +5,16 @@ from unittest.mock import patch
 import dash_bootstrap_components as dbc
 import pandas as pd
 import pytest
-from dash import html
-
 from components.march.march_overview import (
     create_error_message,
     create_march_detail_view,
     create_march_overview,
     create_march_selector,
+    create_participants_table,
 )
 from components.march.participant_detail import create_participant_detail_view
 from components.march.role_based_overview import create_role_based_march_overview
+from dash import dcc, html
 
 
 @pytest.mark.unit
@@ -116,6 +116,63 @@ class TestMarchOverview:
         assert result is not None
         # Check that it contains the basic structure elements
         assert isinstance(result, (list, html.Div, dbc.Container))
+
+
+def _collect_links(component):
+    """Recursively collect all dcc.Link components in a Dash component tree"""
+    links = []
+    if isinstance(component, dcc.Link):
+        links.append(component)
+    children = getattr(component, "children", None)
+    if isinstance(children, (list, tuple)):
+        for child in children:
+            links.extend(_collect_links(child))
+    elif children is not None:
+        links.extend(_collect_links(children))
+    return links
+
+
+@pytest.mark.unit
+class TestParticipantsTable:
+    """Test participant clickability in the participants table"""
+
+    def _dnf_with_data(self):
+        return pd.DataFrame([{
+            'march_id': 1,
+            'user_id': 7,
+            'username': 'dropout_with_data',
+            'completed': False,
+            'start_offset_minutes': 0,
+            'finish_time_minutes': 120,
+            'avg_hr': 150,
+            'max_hr': 178,
+            'avg_core_temp': 37.4,
+            'total_steps': 9000,
+            'estimated_distance_km': 8.5,
+            'avg_pace_kmh': 4.1,
+            'effort_score': 60.0,
+        }])
+
+    def test_dnf_participant_with_data_is_clickable(self):
+        """A 'did not finish' participant that has data should be clickable"""
+        table = create_participants_table(self._dnf_with_data())
+
+        links = _collect_links(table)
+        assert len(links) == 1, "DNF participant with data should be a clickable link"
+        assert links[0].href == "/march/1/participant/7"
+
+    def test_participant_without_data_shows_no_data_and_is_not_clickable(self):
+        """A participant with no metrics should be labelled 'No data' and not clickable"""
+        df = self._dnf_with_data()
+        for col in ['avg_hr', 'max_hr', 'avg_core_temp', 'total_steps',
+                    'estimated_distance_km', 'avg_pace_kmh', 'effort_score']:
+            df[col] = pd.NA
+
+        table = create_participants_table(df)
+
+        assert _collect_links(table) == []
+        assert "No data" in str(table)
+        assert "Did not finish" not in str(table)
 
 
 @pytest.mark.unit

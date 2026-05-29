@@ -208,19 +208,41 @@ def create_participants_table(participants_df):
 
     table_rows = []
     for _, row in participants_df.iterrows():
-        # Status indicator
-        status_badge = dbc.Badge([
-            html.I(className="fas fa-check me-1" if row['completed'] else "fas fa-times me-1"),
-            "Completed" if row['completed'] else "Did not finish"
-        ],
-            color="success" if row['completed'] else "danger",
-            className="me-2 status-completed" if row['completed'] else "me-2 status-failed"
+        # A participant has data to show if any health metric is populated.
+        # "Did not finish" participants often still have partial data (up to
+        # their dropout point) worth inspecting, whereas participants with no
+        # data at all should be clearly distinguished rather than mixed in.
+        has_data = any(
+            pd.notna(row.get(col))
+            for col in ('avg_hr', 'max_hr', 'avg_core_temp', 'total_steps',
+                        'estimated_distance_km', 'avg_pace_kmh', 'effort_score')
         )
 
-        row_class = "row-completed" if row['completed'] else "row-dnf"
+        # Status indicator: three distinct states
+        if not has_data:
+            status_badge = dbc.Badge(
+                [html.I(className="fas fa-ban me-1"), "No data"],
+                color="secondary",
+                className="me-2 status-no-data",
+            )
+            row_class = "row-no-data"
+        elif row['completed']:
+            status_badge = dbc.Badge(
+                [html.I(className="fas fa-check me-1"), "Completed"],
+                color="success",
+                className="me-2 status-completed",
+            )
+            row_class = "row-completed"
+        else:
+            status_badge = dbc.Badge(
+                [html.I(className="fas fa-times me-1"), "Did not finish"],
+                color="danger",
+                className="me-2 status-failed",
+            )
+            row_class = "row-dnf"
 
-        # Create clickable participant name if completed
-        if row['completed']:
+        # Clickable whenever there is data to show, regardless of completion
+        if has_data:
             participant_link = dcc.Link(
                 [status_badge, row['username']],
                 href=f"/march/{row['march_id']}/participant/{row['user_id']}",

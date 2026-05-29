@@ -314,6 +314,10 @@ h6 { font-size: 1rem; color: var(--text-secondary); }
 .table-professional tbody tr.row-dnf {
   border-left: 3px solid var(--accent-danger);
 }
+.table-professional tbody tr.row-no-data {
+  border-left: 3px solid var(--text-muted, #adb5bd);
+  opacity: 0.7;
+}
 
 /* Subtle hover polish */
 .table-professional.table-hover tbody tr:hover {
@@ -342,6 +346,11 @@ h6 { font-size: 1rem; color: var(--text-secondary); }
 
 .status-failed {
   background-color: var(--accent-danger);
+  color: white;
+}
+
+.status-no-data {
+  background-color: var(--text-muted, #adb5bd);
   color: white;
 }
 
