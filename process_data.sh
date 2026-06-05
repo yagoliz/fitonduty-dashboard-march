@@ -235,18 +235,18 @@ fi
 # --- 7. Processing Steps ----------------------------------------------------
 
 if [ "${SKIP_PROCESS}" = false ]; then
-    # echo ""
-    # echo "--- Step 1: Process Watch Data ---"
-    # uv run scripts/data/process_watch_data.py \
-    #     --data-dir "${WATCH_DATA_DIR}" \
-    #     --march-id "${MARCH_ID}" \
-    #     --start-lat "${START_LAT}" \
-    #     --start-lon "${START_LON}" \
-    #     --end-lat "${END_LAT}" \
-    #     --end-lon "${END_LON}" \
-    #     --gps-tolerance "${GPS_TOLERANCE}" \
-    #     --min-gps-crossing-delay "${MIN_GPS_CROSSING_DELAY}" \
-    #     --output "${OUTPUT_DIR}"
+    echo ""
+    echo "--- Step 1: Process Watch Data ---"
+    uv run scripts/data/process_watch_data.py \
+        --data-dir "${WATCH_DATA_DIR}" \
+        --march-id "${MARCH_ID}" \
+        --start-lat "${START_LAT}" \
+        --start-lon "${START_LON}" \
+        --end-lat "${END_LAT}" \
+        --end-lon "${END_LON}" \
+        --gps-tolerance "${GPS_TOLERANCE}" \
+        --min-gps-crossing-delay "${MIN_GPS_CROSSING_DELAY}" \
+        --output "${OUTPUT_DIR}"
 
     echo ""
     echo "--- Step 2: Fill Non-Watch Data ---"
