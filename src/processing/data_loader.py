@@ -381,11 +381,17 @@ def load_march_timeseries_data(conn, df, march_id):
 
     # Prepare data for batch insert
     records = []
+    skipped_count = 0
     for _, row in df.iterrows():
         # Convert values to match database schema types
         # timestamp_minutes: INTEGER
-        timestamp_val = to_python_type(row.get('timestamp_minutes', 0))
-        timestamp_minutes = int(round(timestamp_val)) if timestamp_val is not None else 0
+        timestamp_val = to_python_type(row.get('timestamp_minutes'))
+        if timestamp_val is None:
+            # Skip rows with no valid timestamp_minutes (e.g. NaN gap buckets).
+            # Coercing these to 0 dumps mid-march cumulative values at march start.
+            skipped_count += 1
+            continue
+        timestamp_minutes = int(round(timestamp_val))
 
         records.append({
             'march_id': march_id,
@@ -441,6 +447,8 @@ def load_march_timeseries_data(conn, df, march_id):
         loaded_count += len(records)
 
     print(f"  ✓ Loaded {loaded_count} timeseries records")
+    if skipped_count:
+        print(f"  ⚠️  Skipped {skipped_count} rows with missing timestamp_minutes")
     return loaded_count
 
 
@@ -521,8 +529,11 @@ def load_march_core_temp_data(conn, df, march_id):
     # Prepare data for batch insert/update
     records = []
     for _, row in df.iterrows():
-        timestamp_val = to_python_type(row.get('timestamp_minutes', 0))
-        timestamp_minutes = int(round(timestamp_val)) if timestamp_val is not None else 0
+        timestamp_val = to_python_type(row.get('timestamp_minutes'))
+        if timestamp_val is None:
+            # Skip rows with no valid timestamp_minutes (see load_march_timeseries_data).
+            continue
+        timestamp_minutes = int(round(timestamp_val))
 
         records.append({
             'march_id': march_id,

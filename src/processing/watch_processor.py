@@ -483,7 +483,11 @@ class WatchDataProcessor:
             )
 
         # Build resample aggregation dict from available columns
-        agg_dict = {"timestamp_minutes": "mean"}
+        # NOTE: do NOT aggregate timestamp_minutes here. Empty (gap) buckets would
+        # yield NaN, which downstream gets coerced to 0 and dumps interpolated step
+        # values at march start. We recompute it from the resampled timestamp index
+        # below, which is always valid for every bucket.
+        agg_dict = {}
         if "heart_rate" in merged_df.columns:
             agg_dict["heart_rate"] = "mean"
         if "steps" in merged_df.columns:
@@ -500,6 +504,17 @@ class WatchDataProcessor:
             .agg(agg_dict)
             .reset_index()
         )
+
+        # Recompute timestamp_minutes from the resampled timestamp index so every
+        # bucket (including interpolated gaps) carries a valid value.
+        if self.march_start_time:
+            timeseries_df["timestamp_minutes"] = (
+                timeseries_df["timestamp"] - self.march_start_time
+            ).dt.total_seconds() / 60
+        else:
+            timeseries_df["timestamp_minutes"] = (
+                timeseries_df["timestamp"] - timeseries_df["timestamp"].min()
+            ).dt.total_seconds() / 60
 
         # Interpolate missing step values
         if "steps" in timeseries_df.columns and timeseries_df["steps"].notna().any():
