@@ -6,8 +6,31 @@ import pandas as pd
 import plotly.graph_objects as go
 
 
+def apply_march_time_axis(
+    fig: go.Figure, march_duration_minutes: float | None = None
+) -> None:
+    """Apply the unified "Time (hours)" x-axis shared by all participant charts.
+
+    Sets the x-axis title and grid styling, and fixes the range to
+    [0, march_duration_minutes / 60] so every chart for a participant spans the
+    same timescale (0 up to the march duration). If the duration is unknown the
+    range is left to auto-scale.
+    """
+    axis_kwargs: dict[str, Any] = dict(
+        title_text="Time (hours)",
+        showgrid=True,
+        gridwidth=1,
+        gridcolor="rgba(128,128,128,0.2)",
+    )
+    if march_duration_minutes:
+        axis_kwargs["range"] = [0, march_duration_minutes / 60]
+    fig.update_xaxes(**axis_kwargs)
+
+
 def create_hr_timeline(
-    timeseries_data: pd.DataFrame, participant_name: str = "Participant"
+    timeseries_data: pd.DataFrame,
+    participant_name: str = "Participant",
+    march_duration_minutes: float | None = None,
 ) -> tuple[go.Figure, dict]:
     """Create dual-axis timeline showing HR and speed progression during march
 
@@ -75,9 +98,7 @@ def create_hr_timeline(
     )
 
     # Update x-axis
-    fig.update_xaxes(
-        title_text="Time (hours)", showgrid=True, gridwidth=1, gridcolor="rgba(128,128,128,0.2)"
-    )
+    apply_march_time_axis(fig, march_duration_minutes)
 
     # Add average line if we have valid HR data
     if avg_hr is not None:
@@ -278,7 +299,9 @@ def create_movement_speeds_chart(movement_data: dict[str, int]) -> go.Figure:
     return fig
 
 
-def create_cumulative_steps_chart(timeseries_data: pd.DataFrame) -> go.Figure:
+def create_cumulative_steps_chart(
+    timeseries_data: pd.DataFrame, march_duration_minutes: float | None = None
+) -> go.Figure:
     """Create line chart showing cumulative steps during march"""
 
     if timeseries_data.empty or "cumulative_steps" not in timeseries_data.columns:
@@ -316,7 +339,6 @@ def create_cumulative_steps_chart(timeseries_data: pd.DataFrame) -> go.Figure:
     )
 
     fig.update_layout(
-        xaxis_title="Time (hours)",
         yaxis_title="Cumulative Steps",
         height=350,
         margin=dict(l=20, r=20, t=20, b=40),
@@ -327,13 +349,15 @@ def create_cumulative_steps_chart(timeseries_data: pd.DataFrame) -> go.Figure:
         autosize=True,
     )
 
-    fig.update_xaxes(showgrid=True, gridwidth=1, gridcolor="rgba(128,128,128,0.2)")
+    apply_march_time_axis(fig, march_duration_minutes)
     fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor="rgba(128,128,128,0.2)", automargin=True)
 
     return fig
 
 
-def create_pace_consistency_chart(timeseries_data: pd.DataFrame) -> tuple[go.Figure, dict]:
+def create_pace_consistency_chart(
+    timeseries_data: pd.DataFrame, march_duration_minutes: float | None = None
+) -> tuple[go.Figure, dict]:
     """Create chart showing pace consistency and variation during march
 
     Returns:
@@ -405,7 +429,6 @@ def create_pace_consistency_chart(timeseries_data: pd.DataFrame) -> tuple[go.Fig
         )
 
     fig.update_layout(
-        xaxis_title="Time (hours)",
         yaxis_title="Speed (km/h)",
         height=300,
         margin=dict(l=20, r=20, t=30, b=40),
@@ -416,14 +439,16 @@ def create_pace_consistency_chart(timeseries_data: pd.DataFrame) -> tuple[go.Fig
         autosize=True,
     )
 
-    fig.update_xaxes(showgrid=True, gridwidth=1, gridcolor="rgba(128,128,128,0.2)")
+    apply_march_time_axis(fig, march_duration_minutes)
     fig.update_yaxes(showgrid=True, range=[-0.1,8.1], gridwidth=1, gridcolor="rgba(128,128,128,0.2)", automargin=True)
 
     return fig, stats
 
 
 def create_core_temp_timeline(
-    timeseries_data: pd.DataFrame, participant_name: str = "Participant"
+    timeseries_data: pd.DataFrame,
+    participant_name: str = "Participant",
+    march_duration_minutes: float | None = None,
 ) -> tuple[go.Figure, dict]:
     """Create timeline showing core body temperature progression during march
 
@@ -525,13 +550,8 @@ def create_core_temp_timeline(
             line_width=4,
         )
 
-    # Update x-axis
-    fig.update_xaxes(
-        title_text="Time (hours)",
-        showgrid=True,
-        gridwidth=1,
-        gridcolor="rgba(128,128,128,0.2)",
-    )
+    # Update x-axis (range spans the full march, not just where temp data exists)
+    apply_march_time_axis(fig, march_duration_minutes)
 
     # Update y-axis
     fig.update_yaxes(

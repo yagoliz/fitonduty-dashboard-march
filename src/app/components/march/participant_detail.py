@@ -182,11 +182,24 @@ def create_participant_detail_view(march_id: int, user_id: int) -> html.Div:
         # Create summary cards
         summary_cards = create_performance_summary_cards(summary_data)
 
+        # Resolve the march duration so every chart shares one timescale
+        # (0 -> march duration). Fall back to the last recorded sample when the
+        # actual duration metric is missing.
+        march_duration_minutes = summary_data.get("march_duration_minutes")
+        if not march_duration_minutes and not timeseries_data.empty:
+            march_duration_minutes = timeseries_data["timestamp_minutes"].max()
+
         # Create charts
-        hr_speed_chart, hr_stats = create_hr_timeline(timeseries_data, "March Performance")
-        steps_chart = create_cumulative_steps_chart(timeseries_data)
-        pace_chart, pace_stats = create_pace_consistency_chart(timeseries_data)
-        temp_chart, temp_stats = create_core_temp_timeline(timeseries_data, participant_name)
+        hr_speed_chart, hr_stats = create_hr_timeline(
+            timeseries_data, "March Performance", march_duration_minutes
+        )
+        steps_chart = create_cumulative_steps_chart(timeseries_data, march_duration_minutes)
+        pace_chart, pace_stats = create_pace_consistency_chart(
+            timeseries_data, march_duration_minutes
+        )
+        temp_chart, temp_stats = create_core_temp_timeline(
+            timeseries_data, participant_name, march_duration_minutes
+        )
 
         # Get GPS track data
         gps_data = get_march_gps_track(march_id, user_id)
